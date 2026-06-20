@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 public protocol FileDialogService {
     func chooseOpenFile() -> URL?
+    func chooseOpenFolder() -> URL?
     func chooseSaveFile(defaultName: String) -> URL?
 }
 
@@ -16,6 +17,16 @@ public struct AppKitFileDialogService: FileDialogService {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.allowedContentTypes = Self.allowedDocumentTypes
+
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    public func chooseOpenFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = false
 
         return panel.runModal() == .OK ? panel.url : nil
     }

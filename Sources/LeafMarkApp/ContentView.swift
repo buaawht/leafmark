@@ -10,11 +10,13 @@ struct ContentView: View {
     @State private var isPreviewVisible = true
     @State private var rightPanelMode = RightPanelMode.preview
     @State private var copyRequested = false
+    @State private var directoryTree: DirectoryTreeNode?
     @State private var renderTask: Task<Void, Never>?
     @AppStorage("appearancePreference") private var appearancePreferenceRawValue = AppearancePreference.system.rawValue
 
     private let renderer = MarkdownRenderService()
     private let outlineService = DocumentOutlineService()
+    private let workspaceFileService = WorkspaceFileService()
     private let fileDialogService: any FileDialogService = AppKitFileDialogService()
 
     var body: some View {
@@ -61,7 +63,12 @@ struct ContentView: View {
 
     private var documentSplitView: some View {
         HSplitView {
-            DirectorySidebarView(isVisible: isSidebarVisible)
+            DirectorySidebarView(
+                isVisible: isSidebarVisible,
+                tree: directoryTree,
+                selectedFileURL: session.selectedTab?.fileURL,
+                openDocument: openDocument(at:)
+            )
 
             TextEditor(text: selectedMarkdownBinding)
                 .font(.system(.body, design: .monospaced))
@@ -111,6 +118,10 @@ struct ContentView: View {
 
             Button(action: openDocument) {
                 Label("Open", systemImage: "folder")
+            }
+
+            Button(action: openFolder) {
+                Label("Open Folder", systemImage: "folder.badge.plus")
             }
 
             Button {
@@ -208,6 +219,18 @@ struct ContentView: View {
         guard let url = fileDialogService.chooseOpenFile() else { return }
 
         openDocument(at: url)
+    }
+
+    private func openFolder() {
+        guard let url = fileDialogService.chooseOpenFolder() else { return }
+
+        do {
+            directoryTree = try workspaceFileService.scanDirectory(root: url)
+            session.workspaceRootURL = url
+            isSidebarVisible = true
+        } catch {
+            showError(error.localizedDescription)
+        }
     }
 
     private func openPendingDocumentFromFinder() {
