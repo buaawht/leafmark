@@ -6,6 +6,10 @@ struct DirectorySidebarView: View {
     let tree: DirectoryTreeNode?
     let selectedFileURL: URL?
     let openDocument: (URL) -> Void
+    let createFile: (URL) -> Void
+    let createFolder: (URL) -> Void
+    let renameItem: (DirectoryTreeNode) -> Void
+    let deleteItem: (DirectoryTreeNode) -> Void
 
     var body: some View {
         if isVisible {
@@ -18,7 +22,11 @@ struct DirectorySidebarView: View {
                         DirectoryTreeNodeView(
                             node: tree,
                             selectedFileURL: selectedFileURL,
-                            openDocument: openDocument
+                            openDocument: openDocument,
+                            createFile: createFile,
+                            createFolder: createFolder,
+                            renameItem: renameItem,
+                            deleteItem: deleteItem
                         )
                     }
                     .listStyle(.sidebar)
@@ -40,6 +48,10 @@ private struct DirectoryTreeNodeView: View {
     let node: DirectoryTreeNode
     let selectedFileURL: URL?
     let openDocument: (URL) -> Void
+    let createFile: (URL) -> Void
+    let createFolder: (URL) -> Void
+    let renameItem: (DirectoryTreeNode) -> Void
+    let deleteItem: (DirectoryTreeNode) -> Void
 
     var body: some View {
         switch node.kind {
@@ -49,11 +61,30 @@ private struct DirectoryTreeNodeView: View {
                     DirectoryTreeNodeView(
                         node: child,
                         selectedFileURL: selectedFileURL,
-                        openDocument: openDocument
+                        openDocument: openDocument,
+                        createFile: createFile,
+                        createFolder: createFolder,
+                        renameItem: renameItem,
+                        deleteItem: deleteItem
                     )
                 }
             } label: {
                 Label(node.name, systemImage: "folder")
+            }
+            .contextMenu {
+                Button("New File") {
+                    createFile(node.url)
+                }
+                Button("New Folder") {
+                    createFolder(node.url)
+                }
+                Divider()
+                Button("Rename") {
+                    renameItem(node)
+                }
+                Button("Move to Trash", role: .destructive) {
+                    deleteItem(node)
+                }
             }
         case .document:
             Button {
@@ -64,6 +95,14 @@ private struct DirectoryTreeNodeView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(node.url == selectedFileURL ? Color.accentColor : Color.primary)
+            .contextMenu {
+                Button("Rename") {
+                    renameItem(node)
+                }
+                Button("Move to Trash", role: .destructive) {
+                    deleteItem(node)
+                }
+            }
         }
     }
 }

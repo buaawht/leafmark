@@ -93,4 +93,8 @@ public final class DocumentTab: Identifiable, Equatable {
         fileURL = url
         hasUnsavedChanges = false
     }
+
+    public func updateFileURL(_ url: URL) {
+        fileURL = url
+    }
 }

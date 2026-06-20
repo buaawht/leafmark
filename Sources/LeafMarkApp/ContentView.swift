@@ -67,7 +67,11 @@ struct ContentView: View {
                 isVisible: isSidebarVisible,
                 tree: directoryTree,
                 selectedFileURL: session.selectedTab?.fileURL,
-                openDocument: openDocument(at:)
+                openDocument: openDocument(at:),
+                createFile: createFile(in:),
+                createFolder: createFolder(in:),
+                renameItem: renameItem(_:),
+                deleteItem: deleteItem(_:)
             )
 
             TextEditor(text: selectedMarkdownBinding)
@@ -230,6 +234,112 @@ struct ContentView: View {
             isSidebarVisible = true
         } catch {
             showError(error.localizedDescription)
+        }
+    }
+
+    private func refreshDirectoryTree() {
+        guard let root = session.workspaceRootURL else { return }
+        do {
+            directoryTree = try workspaceFileService.scanDirectory(root: root)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func createFile(in directory: URL) {
+        guard let name = AppDialogCoordinator.askForName(
+            title: "New Markdown File",
+            message: "Enter a file name.",
+            defaultValue: "Untitled.md"
+        ) else { return }
+
+        do {
+            let url = try workspaceFileService.createMarkdownFile(named: name, in: directory)
+            refreshDirectoryTree()
+            openDocument(at: url)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func createFolder(in directory: URL) {
+        guard let name = AppDialogCoordinator.askForName(
+            title: "New Folder",
+            message: "Enter a folder name.",
+            defaultValue: "New Folder"
+        ) else { return }
+
+        do {
+            _ = try workspaceFileService.createFolder(named: name, in: directory)
+            refreshDirectoryTree()
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func renameItem(_ node: DirectoryTreeNode) {
+        guard prepareOpenTabsForFileOperation(under: node) else { return }
+        guard let newName = AppDialogCoordinator.askForName(
+            title: "Rename",
+            message: "Enter a new name.",
+            defaultValue: node.name
+        ) else { return }
+
+        do {
+            let newURL = try workspaceFileService.renameItem(at: node.url, to: newName)
+            session.updateTabFileURLs(movingItemAt: node.url, to: newURL)
+            refreshDirectoryTree()
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func deleteItem(_ node: DirectoryTreeNode) {
+        guard AppDialogCoordinator.confirmDelete(displayName: node.name, isFolder: node.kind == .folder) else {
+            return
+        }
+        guard prepareOpenTabsForFileOperation(under: node) else { return }
+
+        do {
+            let openTabIDs = affectedTabs(for: node).map(\.id)
+            try workspaceFileService.trashItem(at: node.url)
+            for tabID in openTabIDs {
+                _ = session.discardTab(id: tabID)
+            }
+            refreshDirectoryTree()
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func prepareOpenTabsForFileOperation(under node: DirectoryTreeNode) -> Bool {
+        for tab in affectedTabs(for: node) where tab.hasUnsavedChanges {
+            session.selectedTabID = tab.id
+            switch AppDialogCoordinator.askUnsavedChanges(displayName: tab.displayName) {
+            case .save:
+                guard saveDocument() else { return false }
+            case .discard:
+                _ = session.discardTab(id: tab.id)
+            case .cancel:
+                return false
+            }
+        }
+        return true
+    }
+
+    private func affectedTabs(for node: DirectoryTreeNode) -> [DocumentTab] {
+        let target = node.url.standardizedFileURL
+        let targetPath = target.path
+        let targetPrefix = targetPath + "/"
+
+        return session.tabs.filter { tab in
+            guard let fileURL = tab.fileURL?.standardizedFileURL else { return false }
+            switch node.kind {
+            case .document:
+                return fileURL == target
+            case .folder:
+                return fileURL.path == targetPath || fileURL.path.hasPrefix(targetPrefix)
+            }
         }
     }
 

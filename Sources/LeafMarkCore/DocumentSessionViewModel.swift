@@ -35,6 +35,33 @@ public final class DocumentSessionViewModel {
         return tabs.first { $0.id == id }
     }
 
+    public func tabID(forFileURL fileURL: URL) -> DocumentTab.ID? {
+        tabs.first { $0.fileURL == fileURL }?.id
+    }
+
+    public func updateTabFileURL(from oldURL: URL, to newURL: URL) {
+        tabs
+            .filter { $0.fileURL == oldURL }
+            .forEach { $0.updateFileURL(newURL) }
+    }
+
+    public func updateTabFileURLs(movingItemAt oldURL: URL, to newURL: URL) {
+        let oldPath = oldURL.standardizedFileURL.path
+        let oldPrefix = oldPath + "/"
+
+        for tab in tabs {
+            guard let fileURL = tab.fileURL?.standardizedFileURL else { continue }
+            let filePath = fileURL.path
+
+            if filePath == oldPath {
+                tab.updateFileURL(newURL)
+            } else if filePath.hasPrefix(oldPrefix) {
+                let relativePath = String(filePath.dropFirst(oldPrefix.count))
+                tab.updateFileURL(newURL.appendingPathComponent(relativePath))
+            }
+        }
+    }
+
     public func newTab() {
         let tab = DocumentTab()
         tabs.append(tab)
