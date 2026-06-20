@@ -26,7 +26,5 @@ public enum WelcomeDocument {
     let leaf = "mark"
     print(leaf)
     ```
-
-    ![Local image example](example.png)
     """
 }

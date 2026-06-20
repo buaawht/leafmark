@@ -7,7 +7,6 @@ final class WelcomeDocumentTests: XCTestCase {
 
         XCTAssertTrue(text.contains("# Welcome to LeafMark"))
         XCTAssertTrue(text.contains("| Feature | Status |"))
-        XCTAssertTrue(text.contains("![Local image example]"))
         XCTAssertTrue(text.contains("```swift"))
     }
 }
