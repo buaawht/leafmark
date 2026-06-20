@@ -4,11 +4,11 @@
 
 ## Standard Markdown image
 
-![LeafMark sample](assets/leafmark-welcome-sample.svg)
+![LeafMark sample](../../Resources/LeafMark.app/AppIcon.iconset/icon_256x256.png)
 
 ## Obsidian-style image
 
-![[assets/leafmark-welcome-sample.svg]]
+![[../../Resources/LeafMark.app/AppIcon.iconset/icon_256x256.png]]
 
 Expected:
 
