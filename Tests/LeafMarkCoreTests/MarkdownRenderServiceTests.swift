@@ -180,4 +180,14 @@ final class MarkdownRenderServiceTests: XCTestCase {
 
         XCTAssertTrue(html.contains("alt=\"A &lt;Cat&gt; &amp; Dog\""))
     }
+
+    func testRenderObsidianStyleImageEmbed() throws {
+        let html = try MarkdownRenderService().render(
+            "![[Pasted image 20260620220800.png]]",
+            baseFileURL: URL(fileURLWithPath: "/tmp/LeafMark/notes.md")
+        )
+
+        XCTAssertTrue(html.contains("alt=\"Pasted image 20260620220800.png\""))
+        XCTAssertTrue(html.contains("file:///tmp/LeafMark/Pasted%20image%2020260620220800.png"))
+    }
 }

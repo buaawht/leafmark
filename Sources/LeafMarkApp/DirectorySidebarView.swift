@@ -10,6 +10,8 @@ struct DirectorySidebarView: View {
     let createFolder: (URL) -> Void
     let renameItem: (DirectoryTreeNode) -> Void
     let deleteItem: (DirectoryTreeNode) -> Void
+    let revealInFinder: (URL) -> Void
+    let copyAbsolutePath: (URL) -> Void
     let closeWorkspace: () -> Void
 
     var body: some View {
@@ -28,6 +30,8 @@ struct DirectorySidebarView: View {
                             createFolder: createFolder,
                             renameItem: renameItem,
                             deleteItem: deleteItem,
+                            revealInFinder: revealInFinder,
+                            copyAbsolutePath: copyAbsolutePath,
                             closeWorkspace: closeWorkspace,
                             isRoot: true
                         )
@@ -55,6 +59,8 @@ private struct DirectoryTreeNodeView: View {
     let createFolder: (URL) -> Void
     let renameItem: (DirectoryTreeNode) -> Void
     let deleteItem: (DirectoryTreeNode) -> Void
+    let revealInFinder: (URL) -> Void
+    let copyAbsolutePath: (URL) -> Void
     let closeWorkspace: () -> Void
     let isRoot: Bool
 
@@ -71,6 +77,8 @@ private struct DirectoryTreeNodeView: View {
                         createFolder: createFolder,
                         renameItem: renameItem,
                         deleteItem: deleteItem,
+                        revealInFinder: revealInFinder,
+                        copyAbsolutePath: copyAbsolutePath,
                         closeWorkspace: closeWorkspace,
                         isRoot: false
                     )
@@ -84,6 +92,13 @@ private struct DirectoryTreeNodeView: View {
                         }
                         Button("New Folder") {
                             createFolder(node.url)
+                        }
+                        Divider()
+                        Button("Reveal in Finder") {
+                            revealInFinder(node.url)
+                        }
+                        Button("Copy Absolute Path") {
+                            copyAbsolutePath(node.url)
                         }
                         Divider()
                         Button("Rename") {
@@ -109,6 +124,13 @@ private struct DirectoryTreeNodeView: View {
             .buttonStyle(.plain)
             .foregroundStyle(node.url == selectedFileURL ? Color.accentColor : Color.primary)
             .contextMenu {
+                Button("Reveal in Finder") {
+                    revealInFinder(node.url)
+                }
+                Button("Copy Absolute Path") {
+                    copyAbsolutePath(node.url)
+                }
+                Divider()
                 Button("Rename") {
                     renameItem(node)
                 }
@@ -121,6 +143,13 @@ private struct DirectoryTreeNodeView: View {
                 .lineLimit(1)
                 .foregroundStyle(.secondary)
                 .contextMenu {
+                    Button("Reveal in Finder") {
+                        revealInFinder(node.url)
+                    }
+                    Button("Copy Absolute Path") {
+                        copyAbsolutePath(node.url)
+                    }
+                    Divider()
                     Button("Rename") {
                         renameItem(node)
                     }

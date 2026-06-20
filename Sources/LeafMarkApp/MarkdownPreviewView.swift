@@ -204,12 +204,13 @@ struct MarkdownPreviewView: NSViewRepresentable {
 
             guard let webView else { return }
 
-            webView.evaluateJavaScript("[document.documentElement.scrollWidth, document.documentElement.scrollHeight]") { dimensions, _ in
-                let size = Self.pdfSize(from: dimensions, fallback: webView.bounds.size)
+            webView.evaluateJavaScript(Self.prepareA4PDFLayoutScript) { dimensions, _ in
+                let size = Self.a4PDFSize(from: dimensions)
                 let configuration = WKPDFConfiguration()
                 configuration.rect = CGRect(origin: .zero, size: size)
 
                 webView.createPDF(configuration: configuration) { result in
+                    webView.evaluateJavaScript(Self.restorePDFLayoutScript)
                     DispatchQueue.main.async {
                         switch result {
                         case .success(let data):
@@ -226,17 +227,48 @@ struct MarkdownPreviewView: NSViewRepresentable {
             }
         }
 
-        private static func pdfSize(from dimensions: Any?, fallback: CGSize) -> CGSize {
+        private static let a4PDFWidth = 794.0
+
+        private static var prepareA4PDFLayoutScript: String {
+            """
+            (() => {
+              window.__leafmarkPDFStyle = {
+                bodyWidth: document.body.style.width,
+                bodyMaxWidth: document.body.style.maxWidth,
+                bodyMargin: document.body.style.margin,
+                documentWidth: document.documentElement.style.width
+              };
+              document.documentElement.style.width = '(a4PDFWidth)px';
+              document.body.style.width = '(a4PDFWidth)px';
+              document.body.style.maxWidth = '(a4PDFWidth)px';
+              document.body.style.margin = '32px auto';
+              return [(a4PDFWidth), Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)];
+            })();
+            """
+        }
+
+        private static let restorePDFLayoutScript = """
+        (() => {
+          const previous = window.__leafmarkPDFStyle;
+          if (!previous) { return; }
+          document.body.style.width = previous.bodyWidth;
+          document.body.style.maxWidth = previous.bodyMaxWidth;
+          document.body.style.margin = previous.bodyMargin;
+          document.documentElement.style.width = previous.documentWidth;
+          delete window.__leafmarkPDFStyle;
+        })();
+        """
+
+        private static func a4PDFSize(from dimensions: Any?) -> CGSize {
             guard let values = dimensions as? [Any], values.count == 2 else {
-                return fallback
+                return CGSize(width: a4PDFWidth, height: 1123)
             }
 
-            let width = values[0] as? Double ?? fallback.width
-            let height = values[1] as? Double ?? fallback.height
+            let height = values[1] as? Double ?? 1123
 
             return CGSize(
-                width: max(fallback.width, width),
-                height: max(fallback.height, height)
+                width: a4PDFWidth,
+                height: max(1123, height)
             )
         }
     }

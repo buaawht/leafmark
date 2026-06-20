@@ -76,6 +76,19 @@ final class DocumentSessionViewModelTests: XCTestCase {
         XCTAssertEqual(session.selectedTabID, firstID)
     }
 
+    func testMoveTabReordersTabs() {
+        let session = DocumentSessionViewModel()
+        let firstID = session.selectedTabID
+        session.newTab()
+        let secondID = session.selectedTabID
+        session.newTab()
+        let thirdID = session.selectedTabID
+
+        session.moveTab(id: thirdID, before: firstID)
+
+        XCTAssertEqual(session.tabs.map(\.id), [thirdID, firstID, secondID])
+    }
+
     func testSaveAsUpdatesSelectedTabURLTitleAndBaseline() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -8,7 +8,7 @@ struct ContentView: View {
     @State private var session = DocumentSessionViewModel()
     @State private var isSidebarVisible = true
     @State private var isPreviewVisible = true
-    @State private var rightPanelMode = RightPanelMode.preview
+    @State private var isOutlineVisible = false
     @State private var copyRequested = false
     @State private var directoryTree: DirectoryTreeNode?
     @State private var renderTask: Task<Void, Never>?
@@ -57,7 +57,8 @@ struct ContentView: View {
                 tabs: session.tabs,
                 selectedTabID: $session.selectedTabID,
                 closeTab: closeTab,
-                closeOtherTabs: closeOtherTabs
+                closeOtherTabs: closeOtherTabs,
+                moveTab: moveTab(_:before:)
             )
             Divider()
             documentSplitView
@@ -77,6 +78,8 @@ struct ContentView: View {
                 createFolder: createFolder(in:),
                 renameItem: renameItem(_:),
                 deleteItem: deleteItem(_:),
+                revealInFinder: revealInFinder(_:),
+                copyAbsolutePath: copyAbsolutePath(_:),
                 closeWorkspace: closeWorkspace
             )
 
@@ -106,34 +109,37 @@ struct ContentView: View {
     }
 
     private var rightPanel: some View {
-        VStack(spacing: 0) {
-            Picker("Right Panel", selection: $rightPanelMode) {
-                ForEach(RightPanelMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
+        ZStack(alignment: .topTrailing) {
+            MarkdownPreviewView(
+                html: session.selectedTab?.renderedHTML ?? "",
+                baseURL: session.selectedTab?.baseFileURLForPreview,
+                copyRequested: $copyRequested,
+                scrollPercentage: $editorScrollPercentage,
+                scrollTargetID: $previewScrollTargetID,
+                pdfExportURL: $pdfExportURL
+            )
+
+            VStack(alignment: .trailing, spacing: 8) {
+                Button {
+                    isOutlineVisible.toggle()
+                } label: {
+                    Label("Outline", systemImage: isOutlineVisible ? "sidebar.right" : "list.bullet.indent")
+                }
+                .labelStyle(.titleAndIcon)
+
+                if isOutlineVisible {
+                    DocumentOutlineView(outline: currentOutline) { node in
+                        requestedEditorLine = node.line
+                        previewScrollTargetID = node.slug
+                        isOutlineVisible = false
+                    }
+                    .frame(minWidth: 240, idealWidth: 240, maxWidth: 240, maxHeight: .infinity)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(radius: 8)
                 }
             }
-            .pickerStyle(.segmented)
-            .padding(8)
-
-            Divider()
-
-            switch rightPanelMode {
-            case .preview:
-                MarkdownPreviewView(
-                    html: session.selectedTab?.renderedHTML ?? "",
-                    baseURL: session.selectedTab?.baseFileURLForPreview,
-                    copyRequested: $copyRequested,
-                    scrollPercentage: $editorScrollPercentage,
-                    scrollTargetID: $previewScrollTargetID,
-                    pdfExportURL: $pdfExportURL
-                )
-            case .outline:
-                DocumentOutlineView(outline: currentOutline) { node in
-                    requestedEditorLine = node.line
-                    previewScrollTargetID = node.slug
-                    rightPanelMode = .preview
-                }
-            }
+            .padding(10)
         }
     }
 
@@ -296,6 +302,16 @@ struct ContentView: View {
     private func closeWorkspace() {
         directoryTree = nil
         session.workspaceRootURL = nil
+    }
+
+    private func revealInFinder(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func copyAbsolutePath(_ url: URL) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(url.path, forType: .string)
     }
 
     private func refreshDirectoryTree() {
@@ -482,7 +498,6 @@ struct ContentView: View {
         }
 
         isPreviewVisible = true
-        rightPanelMode = .preview
         renderPreview()
         pdfExportURL = url
     }
@@ -517,6 +532,10 @@ struct ContentView: View {
         }
         session.selectedTabID = id
         renderPreview()
+    }
+
+    private func moveTab(_ sourceID: DocumentTab.ID, before targetID: DocumentTab.ID) {
+        session.moveTab(id: sourceID, before: targetID)
     }
 
     private func handleAllUnsavedChangesIfNeeded() -> Bool {
@@ -575,24 +594,6 @@ struct ContentView: View {
     private func showError(_ message: String) {
         session.errorMessage = message
         AppDialogCoordinator.showError(message)
-    }
-}
-
-private enum RightPanelMode: String, CaseIterable, Identifiable {
-    case preview
-    case outline
-
-    var id: String {
-        rawValue
-    }
-
-    var displayName: String {
-        switch self {
-        case .preview:
-            return "Preview"
-        case .outline:
-            return "Outline"
-        }
     }
 }
 

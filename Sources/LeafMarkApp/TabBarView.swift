@@ -1,11 +1,14 @@
 import LeafMarkCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TabBarView: View {
     let tabs: [DocumentTab]
     @Binding var selectedTabID: DocumentTab.ID?
     let closeTab: (DocumentTab.ID) -> Void
     let closeOtherTabs: (DocumentTab.ID) -> Void
+    let moveTab: (DocumentTab.ID, DocumentTab.ID) -> Void
+    @State private var draggingTabID: DocumentTab.ID?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -51,5 +54,33 @@ struct TabBarView: View {
                 closeOtherTabs(tab.id)
             }
         }
+        .onDrag {
+            draggingTabID = tab.id
+            return NSItemProvider(object: tab.id.uuidString as NSString)
+        }
+        .onDrop(
+            of: [UTType.text],
+            delegate: TabDropDelegate(
+                targetTabID: tab.id,
+                draggingTabID: $draggingTabID,
+                moveTab: moveTab
+            )
+        )
+    }
+}
+
+private struct TabDropDelegate: DropDelegate {
+    let targetTabID: DocumentTab.ID
+    @Binding var draggingTabID: DocumentTab.ID?
+    let moveTab: (DocumentTab.ID, DocumentTab.ID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingTabID, draggingTabID != targetTabID else { return }
+        moveTab(draggingTabID, targetTabID)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingTabID = nil
+        return true
     }
 }

@@ -10,7 +10,7 @@ public struct MarkdownRenderService {
         appearance: AppearancePreference = .system
     ) throws -> String {
         var renderer = HTMLRenderer(baseFileURL: baseFileURL)
-        let body = renderer.render(Document(parsing: markdown))
+        let body = renderer.render(Document(parsing: Self.normalizedMarkdown(markdown)))
         let css = Self.css(for: appearance)
 
         return """
@@ -40,6 +40,45 @@ public struct MarkdownRenderService {
         </body>
         </html>
         """
+    }
+
+    private static func normalizedMarkdown(_ markdown: String) -> String {
+        var result = ""
+        var searchStart = markdown.startIndex
+
+        while let start = markdown[searchStart...].range(of: "![["),
+              let end = markdown[start.upperBound...].range(of: "]]") {
+            result += markdown[searchStart..<start.lowerBound]
+
+            let rawTarget = String(markdown[start.upperBound..<end.lowerBound])
+            let parts = rawTarget.split(separator: "|", maxSplits: 1).map(String.init)
+            let imagePath = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let altText = (parts.dropFirst().first ?? imagePath)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if imagePath.isEmpty {
+                result += markdown[start.lowerBound..<end.upperBound]
+            } else {
+                result += "![\(escapedMarkdownLabel(altText))](<\(escapedMarkdownDestination(imagePath))>)"
+            }
+
+            searchStart = end.upperBound
+        }
+
+        result += markdown[searchStart...]
+        return result
+    }
+
+    private static func escapedMarkdownLabel(_ label: String) -> String {
+        label
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "]", with: "\\]")
+    }
+
+    private static func escapedMarkdownDestination(_ destination: String) -> String {
+        destination
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: ">", with: "%3E")
     }
 
     private static func css(for appearance: AppearancePreference) -> String {

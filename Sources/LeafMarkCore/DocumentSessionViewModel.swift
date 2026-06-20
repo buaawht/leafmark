@@ -136,6 +136,21 @@ public final class DocumentSessionViewModel {
         return closableTabs.count
     }
 
+    public func moveTab(id sourceID: DocumentTab.ID?, before targetID: DocumentTab.ID?) {
+        guard let sourceID,
+              let targetID,
+              sourceID != targetID,
+              let sourceIndex = tabs.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = tabs.firstIndex(where: { $0.id == targetID })
+        else {
+            return
+        }
+
+        let tab = tabs.remove(at: sourceIndex)
+        let adjustedTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+        tabs.insert(tab, at: adjustedTargetIndex)
+    }
+
     public func saveSelected(
         fileService: DocumentFileService = DocumentFileService()
     ) throws -> Bool {
