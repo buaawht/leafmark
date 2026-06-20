@@ -174,10 +174,10 @@ final class MarkdownRenderServiceTests: XCTestCase {
 
     func testRenderEscapesImageAltAttribute() throws {
         let html = try MarkdownRenderService().render(
-            "![A \"Cat\"](images/cat.png)",
+            "![A <Cat> & Dog](images/cat.png)",
             baseFileURL: URL(fileURLWithPath: "/tmp/LeafMark/notes.md")
         )
 
-        XCTAssertTrue(html.contains("alt=\"A &quot;Cat&quot;\""))
+        XCTAssertTrue(html.contains("alt=\"A &lt;Cat&gt; &amp; Dog\""))
     }
 }

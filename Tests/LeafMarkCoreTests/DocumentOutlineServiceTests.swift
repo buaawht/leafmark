@@ -11,10 +11,10 @@ final class DocumentOutlineServiceTests: XCTestCase {
         ###### Deep
         """)
 
-        XCTAssertEqual(outline.map(\\.title), ["Title", "Section", "Deep"])
-        XCTAssertEqual(outline.map(\\.level), [1, 2, 6])
-        XCTAssertEqual(outline.map(\\.line), [1, 3, 5])
-        XCTAssertEqual(outline.map(\\.slug), ["title", "section", "deep"])
+        XCTAssertEqual(outline.map(\.title), ["Title", "Section", "Deep"])
+        XCTAssertEqual(outline.map(\.level), [1, 2, 6])
+        XCTAssertEqual(outline.map(\.line), [1, 3, 5])
+        XCTAssertEqual(outline.map(\.slug), ["title", "section", "deep"])
     }
 
     func testIgnoresHeadingsInsideFencedCodeBlocks() {
@@ -28,7 +28,7 @@ final class DocumentOutlineServiceTests: XCTestCase {
         ## Also Real
         """)
 
-        XCTAssertEqual(outline.map(\\.title), ["Real", "Also Real"])
+        XCTAssertEqual(outline.map(\.title), ["Real", "Also Real"])
     }
 
     func testCreatesUniqueSlugsForDuplicateHeadings() {
@@ -38,7 +38,7 @@ final class DocumentOutlineServiceTests: XCTestCase {
         ## Intro!
         """)
 
-        XCTAssertEqual(outline.map(\\.slug), ["intro", "intro-1", "intro-2"])
+        XCTAssertEqual(outline.map(\.slug), ["intro", "intro-1", "intro-2"])
     }
 
     func testReturnsEmptyOutlineWhenNoHeadingsExist() {

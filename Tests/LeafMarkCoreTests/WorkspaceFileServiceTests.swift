@@ -15,8 +15,8 @@ final class WorkspaceFileServiceTests: XCTestCase {
 
         XCTAssertEqual(tree.name, root.lastPathComponent)
         XCTAssertEqual(tree.kind, .folder)
-        XCTAssertEqual(tree.children.map(\\.name), ["Child", "notes.txt", "root.md"])
-        XCTAssertEqual(tree.children.first?.children.map(\\.name), ["child.markdown"])
+        XCTAssertEqual(tree.children.map(\.name), ["Child", "notes.txt", "root.md"])
+        XCTAssertEqual(tree.children.first?.children.map(\.name), ["child.markdown"])
     }
 
     func testScanDirectorySortsFoldersBeforeFilesAlphabetically() throws {
@@ -28,7 +28,7 @@ final class WorkspaceFileServiceTests: XCTestCase {
 
         let tree = try WorkspaceFileService().scanDirectory(root: root)
 
-        XCTAssertEqual(tree.children.map(\\.name), ["Apple", "Zoo", "a.md", "b.md"])
+        XCTAssertEqual(tree.children.map(\.name), ["Apple", "Zoo", "a.md", "b.md"])
     }
 
     func testScanDirectorySkipsHiddenAndBuildFolders() throws {
@@ -41,7 +41,7 @@ final class WorkspaceFileServiceTests: XCTestCase {
 
         let tree = try WorkspaceFileService().scanDirectory(root: root)
 
-        XCTAssertEqual(tree.children.map(\\.name), ["visible.md"])
+        XCTAssertEqual(tree.children.map(\.name), ["visible.md"])
     }
 
     func testCreateMarkdownFileAddsDefaultExtension() throws {

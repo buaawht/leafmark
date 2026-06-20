@@ -62,7 +62,7 @@ final class DocumentSessionViewModelTests: XCTestCase {
         let closed = session.closeOtherTabs(keeping: firstID)
 
         XCTAssertEqual(closed, 2)
-        XCTAssertEqual(session.tabs.map(\\.id), [firstID])
+        XCTAssertEqual(session.tabs.map(\.id), [firstID])
         XCTAssertEqual(session.selectedTabID, firstID)
     }
 

@@ -212,7 +212,7 @@ private struct HTMLRenderer: MarkupWalker {
     }
 
     mutating func visitImage(_ image: Image) {
-        let alt = image.children.compactMap { ($0 as? InlineMarkup)?.plainText }.joined()
+        let alt = image.plainText
         result += "<img alt=\"\(escapeAttribute(alt))\""
         if let source = image.source,
            let safeSource = safeImageSource(source) {
