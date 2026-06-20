@@ -43,6 +43,7 @@ private struct HTMLRenderer: MarkupWalker {
     private var inTableHead = false
     private var tableColumnAlignments: [Table.ColumnAlignment?] = []
     private var currentTableColumn = 0
+    private var headingSlugger = DocumentHeadingSlugger()
 
     init(baseFileURL: URL?) {
         self.baseDirectoryURL = baseFileURL?.deletingLastPathComponent()
@@ -65,7 +66,8 @@ private struct HTMLRenderer: MarkupWalker {
     }
 
     mutating func visitHeading(_ heading: Heading) {
-        result += "<h\(heading.level)>"
+        let slug = headingSlugger.slug(for: heading.plainText)
+        result += "<h\(heading.level) id=\"\(escapeAttribute(slug))\">"
         descendInto(heading)
         result += "</h\(heading.level)>\n"
     }

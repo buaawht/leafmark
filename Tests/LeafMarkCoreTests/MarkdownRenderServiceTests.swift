@@ -56,6 +56,18 @@ final class MarkdownRenderServiceTests: XCTestCase {
         XCTAssertTrue(html.contains("<pre><code class=\"language-html\">&lt;script&gt;alert(\"x\")&lt;/script&gt;"))
     }
 
+    func testRenderHeadingAnchorsForOutlineNavigation() throws {
+        let markdown = """
+        # Intro
+        ## Intro
+        """
+
+        let html = try MarkdownRenderService().render(markdown, baseFileURL: nil)
+
+        XCTAssertTrue(html.contains("<h1 id=\"intro\">"))
+        XCTAssertTrue(html.contains("<h2 id=\"intro-1\">"))
+    }
+
     func testRenderOrderedList() throws {
         let markdown = """
         1. One
