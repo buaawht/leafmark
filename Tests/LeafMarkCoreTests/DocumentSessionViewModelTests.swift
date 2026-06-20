@@ -24,6 +24,16 @@ final class DocumentSessionViewModelTests: XCTestCase {
         XCTAssertEqual(session.tab(id: dirtyID)?.hasUnsavedChanges, true)
     }
 
+    func testNewTabCreatesBlankUntitledDocument() {
+        let session = DocumentSessionViewModel()
+
+        session.newTab()
+
+        XCTAssertEqual(session.selectedTab?.markdownText, "")
+        XCTAssertEqual(session.selectedTab?.displayName, "Untitled.md")
+        XCTAssertFalse(session.selectedTab?.hasUnsavedChanges ?? true)
+    }
+
     func testOpeningSameFileTwiceSelectsExistingTab() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

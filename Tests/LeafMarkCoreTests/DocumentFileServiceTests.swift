@@ -7,6 +7,8 @@ final class DocumentFileServiceTests: XCTestCase {
         XCTAssertTrue(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.MD")))
         XCTAssertTrue(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.markdown")))
         XCTAssertTrue(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.txt")))
+        XCTAssertTrue(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.json")))
+        XCTAssertTrue(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.toml")))
         XCTAssertFalse(DocumentFileService.isSupportedDocument(URL(fileURLWithPath: "/tmp/a.pdf")))
     }
 

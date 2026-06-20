@@ -15,12 +15,14 @@ public final class DocumentTab: Identifiable, Equatable {
     public private(set) var fileURL: URL?
     public var renderedHTML: String
     public private(set) var hasUnsavedChanges: Bool
+    public private(set) var isWelcomeDocument: Bool
 
     public init(
         id: UUID = UUID(),
-        markdownText: String = WelcomeDocument.text,
+        markdownText: String = "",
         fileURL: URL? = nil,
-        renderedHTML: String = ""
+        renderedHTML: String = "",
+        isWelcomeDocument: Bool = false
     ) {
         self.id = id
         self.markdownText = markdownText
@@ -28,6 +30,7 @@ public final class DocumentTab: Identifiable, Equatable {
         self.fileURL = fileURL
         self.renderedHTML = renderedHTML
         self.hasUnsavedChanges = false
+        self.isWelcomeDocument = isWelcomeDocument
     }
 
     public nonisolated static func == (lhs: DocumentTab, rhs: DocumentTab) -> Bool {
@@ -35,7 +38,7 @@ public final class DocumentTab: Identifiable, Equatable {
     }
 
     public var displayName: String {
-        fileURL?.lastPathComponent ?? "Welcome"
+        fileURL?.lastPathComponent ?? (isWelcomeDocument ? "Welcome" : "Untitled.md")
     }
 
     public var windowTitleFragment: String {
@@ -86,15 +89,18 @@ public final class DocumentTab: Identifiable, Equatable {
         baselineText = text
         fileURL = url
         hasUnsavedChanges = false
+        isWelcomeDocument = false
     }
 
     public func markSaved(to url: URL) {
         baselineText = markdownText
         fileURL = url
         hasUnsavedChanges = false
+        isWelcomeDocument = false
     }
 
     public func updateFileURL(_ url: URL) {
         fileURL = url
+        isWelcomeDocument = false
     }
 }

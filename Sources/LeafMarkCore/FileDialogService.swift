@@ -3,6 +3,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 public protocol FileDialogService {
+    func chooseOpenItem() -> URL?
     func chooseOpenFile() -> URL?
     func chooseOpenFolder() -> URL?
     func chooseSaveFile(defaultName: String) -> URL?
@@ -12,6 +13,18 @@ public protocol FileDialogService {
 
 public struct AppKitFileDialogService: FileDialogService {
     public init() {}
+
+    public func chooseOpenItem() -> URL? {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        panel.canCreateDirectories = false
+        panel.allowedContentTypes = Self.allowedOpenItemTypes
+        panel.prompt = "Open"
+
+        return panel.runModal() == .OK ? panel.url : nil
+    }
 
     public func chooseOpenFile() -> URL? {
         let panel = NSOpenPanel()
@@ -62,7 +75,27 @@ public struct AppKitFileDialogService: FileDialogService {
     private static let allowedDocumentTypes: [UTType] = [
         UTType(filenameExtension: "md")!,
         UTType(filenameExtension: "markdown")!,
-        .plainText
+        .plainText,
+        .json,
+        .xml,
+        .commaSeparatedText,
+        .propertyList,
+        UTType(filenameExtension: "toml")!,
+        UTType(filenameExtension: "yaml")!,
+        UTType(filenameExtension: "yml")!,
+        UTType(filenameExtension: "log")!,
+        UTType(filenameExtension: "ini")!,
+        UTType(filenameExtension: "conf")!,
+        UTType(filenameExtension: "swift")!,
+        UTType(filenameExtension: "py")!,
+        UTType(filenameExtension: "js")!,
+        UTType(filenameExtension: "ts")!,
+        UTType(filenameExtension: "sh")!,
+        UTType(filenameExtension: "sql")!
+    ]
+
+    private static let allowedOpenItemTypes: [UTType] = allowedDocumentTypes + [
+        .folder
     ]
 
     private static let allowedMarkdownExportTypes: [UTType] = [
@@ -72,7 +105,7 @@ public struct AppKitFileDialogService: FileDialogService {
 
     private static func defaultMarkdownName(from name: String) -> String {
         let url = URL(fileURLWithPath: name)
-        guard url.pathExtension.lowercased() == "md" else {
+        guard DocumentFileService.isSupportedDocument(url) else {
             return url.deletingPathExtension().lastPathComponent + ".md"
         }
         return name

@@ -76,7 +76,8 @@ struct ContentView: View {
                 createFile: createFile(in:),
                 createFolder: createFolder(in:),
                 renameItem: renameItem(_:),
-                deleteItem: deleteItem(_:)
+                deleteItem: deleteItem(_:),
+                closeWorkspace: closeWorkspace
             )
 
             EditorTextView(
@@ -133,24 +134,29 @@ struct ContentView: View {
                 Label("New", systemImage: "doc")
             }
             .labelStyle(.titleAndIcon)
+            .keyboardShortcut("n", modifiers: .command)
+
+            Button(action: closeSelectedTab) {
+                Label("Close", systemImage: "xmark")
+            }
+            .labelStyle(.titleAndIcon)
+            .keyboardShortcut("w", modifiers: .command)
 
             Button(action: openDocument) {
                 Label("Open", systemImage: "folder")
             }
             .labelStyle(.titleAndIcon)
-
-            Button(action: openFolder) {
-                Label("Open Folder", systemImage: "folder.badge.plus")
-            }
-            .labelStyle(.titleAndIcon)
+            .keyboardShortcut("o", modifiers: .command)
 
             Menu {
                 Button("Save") {
                     _ = saveDocument()
                 }
+                .keyboardShortcut("s", modifiers: .command)
                 Button("Save As") {
                     _ = saveDocumentAs()
                 }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
             } label: {
                 Label("Save", systemImage: "square.and.arrow.down")
             }
@@ -252,14 +258,22 @@ struct ContentView: View {
     }
 
     private func openDocument() {
-        guard let url = fileDialogService.chooseOpenFile() else { return }
+        guard let url = fileDialogService.chooseOpenItem() else { return }
 
-        openDocument(at: url)
+        openItem(at: url)
     }
 
-    private func openFolder() {
-        guard let url = fileDialogService.chooseOpenFolder() else { return }
+    private func openItem(at url: URL) {
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+           isDirectory.boolValue {
+            openFolder(at: url)
+        } else {
+            openDocument(at: url)
+        }
+    }
 
+    private func openFolder(at url: URL) {
         do {
             directoryTree = try workspaceFileService.scanDirectory(root: url)
             session.workspaceRootURL = url
@@ -267,6 +281,11 @@ struct ContentView: View {
         } catch {
             showError(error.localizedDescription)
         }
+    }
+
+    private func closeWorkspace() {
+        directoryTree = nil
+        session.workspaceRootURL = nil
     }
 
     private func refreshDirectoryTree() {
@@ -320,6 +339,9 @@ struct ContentView: View {
         do {
             let newURL = try workspaceFileService.renameItem(at: node.url, to: newName)
             session.updateTabFileURLs(movingItemAt: node.url, to: newURL)
+            if session.workspaceRootURL?.standardizedFileURL == node.url.standardizedFileURL {
+                session.workspaceRootURL = newURL
+            }
             refreshDirectoryTree()
         } catch {
             showError(error.localizedDescription)
@@ -338,7 +360,11 @@ struct ContentView: View {
             for tabID in openTabIDs {
                 _ = session.discardTab(id: tabID)
             }
-            refreshDirectoryTree()
+            if session.workspaceRootURL?.standardizedFileURL == node.url.standardizedFileURL {
+                closeWorkspace()
+            } else {
+                refreshDirectoryTree()
+            }
         } catch {
             showError(error.localizedDescription)
         }
@@ -381,7 +407,7 @@ struct ContentView: View {
         guard let url = pendingOpenedURLs.first else { return }
 
         pendingOpenedURLs.removeAll()
-        openDocument(at: url)
+        openItem(at: url)
     }
 
     private func openDocument(at url: URL) {
@@ -468,6 +494,11 @@ struct ContentView: View {
             _ = session.closeTab(id: id)
         }
         renderPreview()
+    }
+
+    private func closeSelectedTab() {
+        guard let selectedTabID = session.selectedTabID else { return }
+        closeTab(selectedTabID)
     }
 
     private func closeOtherTabs(keeping id: DocumentTab.ID) {

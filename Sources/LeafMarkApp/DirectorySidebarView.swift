@@ -10,6 +10,7 @@ struct DirectorySidebarView: View {
     let createFolder: (URL) -> Void
     let renameItem: (DirectoryTreeNode) -> Void
     let deleteItem: (DirectoryTreeNode) -> Void
+    let closeWorkspace: () -> Void
 
     var body: some View {
         if isVisible {
@@ -26,7 +27,9 @@ struct DirectorySidebarView: View {
                             createFile: createFile,
                             createFolder: createFolder,
                             renameItem: renameItem,
-                            deleteItem: deleteItem
+                            deleteItem: deleteItem,
+                            closeWorkspace: closeWorkspace,
+                            isRoot: true
                         )
                     }
                     .listStyle(.sidebar)
@@ -52,6 +55,8 @@ private struct DirectoryTreeNodeView: View {
     let createFolder: (URL) -> Void
     let renameItem: (DirectoryTreeNode) -> Void
     let deleteItem: (DirectoryTreeNode) -> Void
+    let closeWorkspace: () -> Void
+    let isRoot: Bool
 
     var body: some View {
         switch node.kind {
@@ -65,26 +70,34 @@ private struct DirectoryTreeNodeView: View {
                         createFile: createFile,
                         createFolder: createFolder,
                         renameItem: renameItem,
-                        deleteItem: deleteItem
+                        deleteItem: deleteItem,
+                        closeWorkspace: closeWorkspace,
+                        isRoot: false
                     )
                 }
             } label: {
                 Label(node.name, systemImage: "folder")
-            }
-            .contextMenu {
-                Button("New File") {
-                    createFile(node.url)
-                }
-                Button("New Folder") {
-                    createFolder(node.url)
-                }
-                Divider()
-                Button("Rename") {
-                    renameItem(node)
-                }
-                Button("Move to Trash", role: .destructive) {
-                    deleteItem(node)
-                }
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        Button("New File") {
+                            createFile(node.url)
+                        }
+                        Button("New Folder") {
+                            createFolder(node.url)
+                        }
+                        Divider()
+                        Button("Rename") {
+                            renameItem(node)
+                        }
+                        if isRoot {
+                            Button("Close Workspace") {
+                                closeWorkspace()
+                            }
+                        }
+                        Button("Move to Trash", role: .destructive) {
+                            deleteItem(node)
+                        }
+                    }
             }
         case .document:
             Button {

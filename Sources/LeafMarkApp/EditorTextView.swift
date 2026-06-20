@@ -50,8 +50,15 @@ struct EditorTextView: NSViewRepresentable {
         context.coordinator.requestedLine = $requestedLine
 
         if let textView = context.coordinator.textView, textView.string != text {
+            let selectedRanges = textView.selectedRanges
             context.coordinator.isApplyingExternalTextChange = true
             textView.string = text
+            textView.selectedRanges = selectedRanges.map { rangeValue in
+                let range = rangeValue.rangeValue
+                let location = min(range.location, (text as NSString).length)
+                let length = min(range.length, (text as NSString).length - location)
+                return NSValue(range: NSRange(location: location, length: length))
+            }
             context.coordinator.isApplyingExternalTextChange = false
         }
 

@@ -18,8 +18,20 @@ public struct DocumentFileService {
     public init() {}
 
     public static func isSupportedDocument(_ url: URL) -> Bool {
-        ["md", "markdown", "txt"].contains(url.pathExtension.lowercased())
+        supportedTextExtensions.contains(url.pathExtension.lowercased())
     }
+
+    private static let supportedTextExtensions: Set<String> = [
+        "md", "markdown", "txt", "text",
+        "json", "jsonl", "toml", "yaml", "yml",
+        "xml", "csv", "tsv", "log",
+        "ini", "conf", "config",
+        "html", "htm", "css",
+        "js", "ts", "jsx", "tsx",
+        "swift", "py", "rb", "go", "rs", "java",
+        "c", "h", "cpp", "hpp",
+        "sh", "bash", "zsh", "sql", "plist"
+    ]
 
     public func read(from url: URL) throws -> String {
         guard Self.isSupportedDocument(url) else {

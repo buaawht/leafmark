@@ -10,7 +10,7 @@ public final class DocumentSessionViewModel {
     public var errorMessage: String?
 
     public init() {
-        let welcomeTab = DocumentTab()
+        let welcomeTab = DocumentTab(markdownText: WelcomeDocument.text, isWelcomeDocument: true)
         self.tabs = [welcomeTab]
         self.selectedTabID = welcomeTab.id
         self.workspaceRootURL = nil
@@ -94,7 +94,7 @@ public final class DocumentSessionViewModel {
 
         tabs.remove(at: index)
         if tabs.isEmpty {
-            let welcomeTab = DocumentTab()
+            let welcomeTab = DocumentTab(markdownText: WelcomeDocument.text, isWelcomeDocument: true)
             tabs = [welcomeTab]
             selectedTabID = welcomeTab.id
         } else if selectedTabID == id {
@@ -113,7 +113,7 @@ public final class DocumentSessionViewModel {
 
         tabs.remove(at: index)
         if tabs.isEmpty {
-            let welcomeTab = DocumentTab()
+            let welcomeTab = DocumentTab(markdownText: WelcomeDocument.text, isWelcomeDocument: true)
             tabs = [welcomeTab]
             selectedTabID = welcomeTab.id
         } else if selectedTabID == id {
