@@ -83,7 +83,8 @@ struct ContentView: View {
             EditorTextView(
                 text: selectedMarkdownBinding,
                 scrollPercentage: $editorScrollPercentage,
-                requestedLine: $requestedEditorLine
+                requestedLine: $requestedEditorLine,
+                documentID: session.selectedTabID
             )
                 .padding(8)
                 .frame(minWidth: 320)

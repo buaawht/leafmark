@@ -5,6 +5,7 @@ struct EditorTextView: NSViewRepresentable {
     @Binding var text: String
     @Binding var scrollPercentage: Double
     @Binding var requestedLine: Int?
+    let documentID: AnyHashable?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(text: $text, scrollPercentage: $scrollPercentage, requestedLine: $requestedLine)
@@ -39,6 +40,8 @@ struct EditorTextView: NSViewRepresentable {
 
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
+        context.coordinator.lastKnownText = text
+        context.coordinator.lastDocumentID = documentID
         context.coordinator.startObservingBoundsChanges()
 
         return scrollView
@@ -48,11 +51,16 @@ struct EditorTextView: NSViewRepresentable {
         context.coordinator.text = $text
         context.coordinator.scrollPercentage = $scrollPercentage
         context.coordinator.requestedLine = $requestedLine
+        let didSwitchDocument = context.coordinator.lastDocumentID != documentID
+        context.coordinator.lastDocumentID = documentID
 
-        if let textView = context.coordinator.textView, textView.string != text {
+        if let textView = context.coordinator.textView,
+           textView.string != text,
+           context.coordinator.shouldApplyExternalText(text, didSwitchDocument: didSwitchDocument) {
             let selectedRanges = textView.selectedRanges
             context.coordinator.isApplyingExternalTextChange = true
             textView.string = text
+            context.coordinator.lastKnownText = text
             textView.selectedRanges = selectedRanges.map { rangeValue in
                 let range = rangeValue.rangeValue
                 let location = min(range.location, (text as NSString).length)
@@ -81,6 +89,8 @@ struct EditorTextView: NSViewRepresentable {
         weak var textView: NSTextView?
         weak var scrollView: NSScrollView?
         var isApplyingExternalTextChange = false
+        var lastKnownText = ""
+        var lastDocumentID: AnyHashable?
         private var boundsObserver: NSObjectProtocol?
 
         init(
@@ -102,7 +112,18 @@ struct EditorTextView: NSViewRepresentable {
                   let textView = notification.object as? NSTextView
             else { return }
 
+            lastKnownText = textView.string
             text.wrappedValue = textView.string
+        }
+
+        func shouldApplyExternalText(_ newText: String, didSwitchDocument: Bool) -> Bool {
+            guard let textView else { return true }
+            if didSwitchDocument { return true }
+            if textView.hasMarkedText() { return false }
+            if textView.window?.firstResponder == textView, newText != lastKnownText {
+                return false
+            }
+            return newText != lastKnownText
         }
 
         func startObservingBoundsChanges() {
