@@ -68,6 +68,19 @@ final class MarkdownRenderServiceTests: XCTestCase {
         XCTAssertTrue(html.contains("<h2 id=\"intro-1\">"))
     }
 
+    func testRenderIncludesAppearanceSpecificCSS() throws {
+        let service = MarkdownRenderService()
+
+        let lightHTML = try service.render("# Light", baseFileURL: nil, appearance: .light)
+        let darkHTML = try service.render("# Dark", baseFileURL: nil, appearance: .dark)
+        let systemHTML = try service.render("# System", baseFileURL: nil, appearance: .system)
+
+        XCTAssertTrue(lightHTML.contains("--leafmark-appearance: light"))
+        XCTAssertTrue(darkHTML.contains("--leafmark-appearance: dark"))
+        XCTAssertTrue(systemHTML.contains("--leafmark-appearance: system"))
+        XCTAssertTrue(systemHTML.contains("prefers-color-scheme: dark"))
+    }
+
     func testRenderOrderedList() throws {
         let markdown = """
         1. One

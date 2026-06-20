@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var isPreviewVisible = true
     @State private var copyRequested = false
     @State private var renderTask: Task<Void, Never>?
+    @AppStorage("appearancePreference") private var appearancePreferenceRawValue = AppearancePreference.system.rawValue
 
     private let renderer = MarkdownRenderService()
     private let fileDialogService: any FileDialogService = AppKitFileDialogService()
@@ -29,12 +30,16 @@ struct ContentView: View {
             .onChange(of: pendingOpenedURLs) {
                 openPendingDocumentFromFinder()
             }
+            .onChange(of: appearancePreferenceRawValue) {
+                renderPreview()
+            }
             .onDisappear {
                 renderTask?.cancel()
             }
             .background(WindowCloseGuard(shouldClose: {
                 handleUnsavedChangesIfNeeded()
             }))
+            .preferredColorScheme(preferredColorScheme)
     }
 
     private var content: some View {
@@ -88,6 +93,16 @@ struct ContentView: View {
         }
 
         ToolbarItemGroup {
+            Menu {
+                Picker("Appearance", selection: $appearancePreferenceRawValue) {
+                    ForEach(AppearancePreference.allCases) { preference in
+                        Text(preference.displayName).tag(preference.rawValue)
+                    }
+                }
+            } label: {
+                Label("Appearance", systemImage: "circle.lefthalf.filled")
+            }
+
             Button {
                 isPreviewVisible.toggle()
             } label: {
@@ -219,11 +234,27 @@ struct ContentView: View {
         do {
             renderedHTML = try renderer.render(
                 model.markdownText,
-                baseFileURL: model.baseFileURLForPreview
+                baseFileURL: model.baseFileURLForPreview,
+                appearance: appearancePreference
             )
             model.errorMessage = nil
         } catch {
             model.errorMessage = error.localizedDescription
+        }
+    }
+
+    private var appearancePreference: AppearancePreference {
+        AppearancePreference(rawValue: appearancePreferenceRawValue) ?? .system
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch appearancePreference {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 

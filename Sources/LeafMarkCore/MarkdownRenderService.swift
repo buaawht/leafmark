@@ -4,9 +4,14 @@ import Markdown
 public struct MarkdownRenderService {
     public init() {}
 
-    public func render(_ markdown: String, baseFileURL: URL?) throws -> String {
+    public func render(
+        _ markdown: String,
+        baseFileURL: URL?,
+        appearance: AppearancePreference = .system
+    ) throws -> String {
         var renderer = HTMLRenderer(baseFileURL: baseFileURL)
         let body = renderer.render(Document(parsing: markdown))
+        let css = Self.css(for: appearance)
 
         return """
         <!doctype html>
@@ -15,18 +20,19 @@ public struct MarkdownRenderService {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-        body { color: #1f2933; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 2rem auto; max-width: 760px; padding: 0 1rem; }
+        \(css)
+        body { font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 2rem auto; max-width: 760px; padding: 0 1rem; }
         h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.5em 0 0.5em; }
         p { margin: 0 0 1em; }
-        blockquote { border-left: 4px solid #d0d7de; color: #57606a; margin: 1em 0; padding: 0 1em; }
-        code { background: #f6f8fa; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.15em 0.3em; }
-        pre { background: #f6f8fa; border-radius: 6px; overflow-x: auto; padding: 1em; }
+        blockquote { border-left: 4px solid var(--leafmark-border); color: var(--leafmark-muted); margin: 1em 0; padding: 0 1em; }
+        code { background: var(--leafmark-code-bg); border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.15em 0.3em; }
+        pre { background: var(--leafmark-code-bg); border-radius: 6px; overflow-x: auto; padding: 1em; }
         pre code { background: transparent; padding: 0; }
         table { border-collapse: collapse; margin: 1em 0; width: 100%; }
-        th, td { border: 1px solid #d0d7de; padding: 0.4em 0.6em; }
+        th, td { border: 1px solid var(--leafmark-border); padding: 0.4em 0.6em; }
         img { height: auto; max-width: 100%; }
-        a { color: #0969da; }
-        hr { border: 0; border-top: 1px solid #d0d7de; margin: 2em 0; }
+        a { color: var(--leafmark-link); }
+        hr { border: 0; border-top: 1px solid var(--leafmark-border); margin: 2em 0; }
         </style>
         </head>
         <body>
@@ -34,6 +40,49 @@ public struct MarkdownRenderService {
         </body>
         </html>
         """
+    }
+
+    private static func css(for appearance: AppearancePreference) -> String {
+        let light = """
+        :root {
+          color-scheme: light;
+          --leafmark-bg: #ffffff;
+          --leafmark-text: #1f2933;
+          --leafmark-muted: #57606a;
+          --leafmark-border: #d0d7de;
+          --leafmark-code-bg: #f6f8fa;
+          --leafmark-link: #0969da;
+        }
+        body { background: var(--leafmark-bg); color: var(--leafmark-text); }
+        """
+
+        let dark = """
+        :root {
+          color-scheme: dark;
+          --leafmark-bg: #111827;
+          --leafmark-text: #e5e7eb;
+          --leafmark-muted: #a7b0bd;
+          --leafmark-border: #374151;
+          --leafmark-code-bg: #1f2937;
+          --leafmark-link: #8ab4f8;
+        }
+        body { background: var(--leafmark-bg); color: var(--leafmark-text); }
+        """
+
+        switch appearance {
+        case .light:
+            return "html { --leafmark-appearance: light; }\n\(light)"
+        case .dark:
+            return "html { --leafmark-appearance: dark; }\n\(dark)"
+        case .system:
+            return """
+            html { --leafmark-appearance: system; }
+            \(light)
+            @media (prefers-color-scheme: dark) {
+              \(dark)
+            }
+            """
+        }
     }
 }
 
