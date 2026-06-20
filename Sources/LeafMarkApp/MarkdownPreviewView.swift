@@ -79,6 +79,7 @@ struct MarkdownPreviewView: NSViewRepresentable {
         var pendingPDFExportURL: URL?
         var loadingNavigation: WKNavigation?
         private var lastAppliedScrollPercentage: Double?
+        private var pdfExporter: PDFExporter?
 
         func webView(
             _ webView: WKWebView,
@@ -202,74 +203,87 @@ struct MarkdownPreviewView: NSViewRepresentable {
                 return
             }
 
-            guard let webView else { return }
+            let exporter = PDFExporter(
+                html: lastHTML,
+                baseURL: lastResourceBaseURL,
+                destinationURL: url
+            ) { [weak self] in
+                self?.pdfExporter = nil
+            }
+            pdfExporter = exporter
+            exporter.start()
+        }
+    }
+}
 
-            webView.evaluateJavaScript(Self.prepareA4PDFLayoutScript) { dimensions, _ in
-                let size = Self.a4PDFSize(from: dimensions)
-                let configuration = WKPDFConfiguration()
-                configuration.rect = CGRect(origin: .zero, size: size)
+private final class PDFExporter: NSObject, WKNavigationDelegate {
+    private static let a4Width = 794.0
+    private static let a4Height = 1123.0
 
-                webView.createPDF(configuration: configuration) { result in
-                    webView.evaluateJavaScript(Self.restorePDFLayoutScript)
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success(let data):
-                            do {
-                                try data.write(to: url, options: .atomic)
-                            } catch {
-                                AppDialogCoordinator.showError(error.localizedDescription)
-                            }
-                        case .failure(let error):
+    private let html: String
+    private let baseURL: URL?
+    private let destinationURL: URL
+    private let completion: () -> Void
+    private let webView: WKWebView
+    private var navigation: WKNavigation?
+
+    init(
+        html: String,
+        baseURL: URL?,
+        destinationURL: URL,
+        completion: @escaping () -> Void
+    ) {
+        self.html = html
+        self.baseURL = baseURL
+        self.destinationURL = destinationURL
+        self.completion = completion
+        self.webView = WKWebView(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: Self.a4Width,
+            height: Self.a4Height
+        ))
+        super.init()
+        webView.navigationDelegate = self
+    }
+
+    func start() {
+        navigation = webView.loadHTMLString(html, baseURL: baseURL)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard navigation === self.navigation else { return }
+
+        webView.evaluateJavaScript("[document.documentElement.scrollWidth, document.documentElement.scrollHeight]") { dimensions, _ in
+            let configuration = WKPDFConfiguration()
+            configuration.rect = CGRect(origin: .zero, size: Self.pdfSize(from: dimensions))
+            let destinationURL = self.destinationURL
+            let completion = self.completion
+
+            webView.createPDF(configuration: configuration) { [destinationURL, completion] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let data):
+                        do {
+                            try data.write(to: destinationURL, options: .atomic)
+                        } catch {
                             AppDialogCoordinator.showError(error.localizedDescription)
                         }
+                    case .failure(let error):
+                        AppDialogCoordinator.showError(error.localizedDescription)
                     }
+                    completion()
                 }
             }
         }
+    }
 
-        private static let a4PDFWidth = 794.0
-
-        private static var prepareA4PDFLayoutScript: String {
-            """
-            (() => {
-              window.__leafmarkPDFStyle = {
-                bodyWidth: document.body.style.width,
-                bodyMaxWidth: document.body.style.maxWidth,
-                bodyMargin: document.body.style.margin,
-                documentWidth: document.documentElement.style.width
-              };
-              document.documentElement.style.width = '(a4PDFWidth)px';
-              document.body.style.width = '(a4PDFWidth)px';
-              document.body.style.maxWidth = '(a4PDFWidth)px';
-              document.body.style.margin = '32px auto';
-              return [(a4PDFWidth), Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)];
-            })();
-            """
+    private static func pdfSize(from dimensions: Any?) -> CGSize {
+        guard let values = dimensions as? [Any], values.count == 2 else {
+            return CGSize(width: a4Width, height: a4Height)
         }
 
-        private static let restorePDFLayoutScript = """
-        (() => {
-          const previous = window.__leafmarkPDFStyle;
-          if (!previous) { return; }
-          document.body.style.width = previous.bodyWidth;
-          document.body.style.maxWidth = previous.bodyMaxWidth;
-          document.body.style.margin = previous.bodyMargin;
-          document.documentElement.style.width = previous.documentWidth;
-          delete window.__leafmarkPDFStyle;
-        })();
-        """
-
-        private static func a4PDFSize(from dimensions: Any?) -> CGSize {
-            guard let values = dimensions as? [Any], values.count == 2 else {
-                return CGSize(width: a4PDFWidth, height: 1123)
-            }
-
-            let height = values[1] as? Double ?? 1123
-
-            return CGSize(
-                width: a4PDFWidth,
-                height: max(1123, height)
-            )
-        }
+        let height = values[1] as? Double ?? a4Height
+        return CGSize(width: a4Width, height: max(a4Height, height))
     }
 }
