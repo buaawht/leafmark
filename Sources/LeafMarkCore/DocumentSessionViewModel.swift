@@ -77,6 +77,25 @@ public final class DocumentSessionViewModel {
     }
 
     @discardableResult
+    public func discardTab(id: DocumentTab.ID?) -> Bool {
+        guard let id,
+              let index = tabs.firstIndex(where: { $0.id == id })
+        else {
+            return false
+        }
+
+        tabs.remove(at: index)
+        if tabs.isEmpty {
+            let welcomeTab = DocumentTab()
+            tabs = [welcomeTab]
+            selectedTabID = welcomeTab.id
+        } else if selectedTabID == id {
+            selectedTabID = tabs[min(index, tabs.count - 1)].id
+        }
+        return true
+    }
+
+    @discardableResult
     public func closeOtherTabs(keeping id: DocumentTab.ID?) -> Int {
         guard let id,
               let selected = tabs.first(where: { $0.id == id })
