@@ -63,10 +63,10 @@ public struct WorkspaceFileService {
                 if values.isDirectory == true {
                     return try scanFolder(url)
                 }
-                guard DocumentFileService.isSupportedDocument(url) else {
-                    return nil
-                }
-                return DirectoryTreeNode(url: url, kind: .document)
+                let kind: DirectoryTreeNode.Kind = DocumentFileService.isSupportedDocument(url)
+                    ? .document
+                    : .unsupportedFile
+                return DirectoryTreeNode(url: url, kind: kind)
             }
             .sorted(by: sortNodes)
 
@@ -81,8 +81,8 @@ public struct WorkspaceFileService {
     }
 
     private func sortNodes(_ lhs: DirectoryTreeNode, _ rhs: DirectoryTreeNode) -> Bool {
-        if lhs.kind != rhs.kind {
-            return lhs.kind == .folder
+        if lhs.isFolder != rhs.isFolder {
+            return lhs.isFolder
         }
         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
     }

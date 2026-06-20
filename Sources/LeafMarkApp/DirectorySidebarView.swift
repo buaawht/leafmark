@@ -103,6 +103,18 @@ private struct DirectoryTreeNodeView: View {
                     deleteItem(node)
                 }
             }
+        case .unsupportedFile:
+            Label(node.name, systemImage: "doc")
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+                .contextMenu {
+                    Button("Rename") {
+                        renameItem(node)
+                    }
+                    Button("Move to Trash", role: .destructive) {
+                        deleteItem(node)
+                    }
+                }
         }
     }
 }

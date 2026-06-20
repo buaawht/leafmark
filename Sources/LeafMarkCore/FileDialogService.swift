@@ -29,6 +29,8 @@ public struct AppKitFileDialogService: FileDialogService {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = false
+        panel.allowedContentTypes = [.folder]
+        panel.prompt = "Open"
 
         return panel.runModal() == .OK ? panel.url : nil
     }

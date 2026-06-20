@@ -369,6 +369,8 @@ struct ContentView: View {
             switch node.kind {
             case .document:
                 return fileURL == target
+            case .unsupportedFile:
+                return false
             case .folder:
                 return fileURL.path == targetPath || fileURL.path.hasPrefix(targetPrefix)
             }

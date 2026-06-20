@@ -4,6 +4,7 @@ public struct DirectoryTreeNode: Identifiable, Equatable {
     public enum Kind: Equatable {
         case folder
         case document
+        case unsupportedFile
     }
 
     public let id: URL
@@ -27,5 +28,9 @@ public struct DirectoryTreeNode: Identifiable, Equatable {
 
     public var isFolder: Bool {
         kind == .folder
+    }
+
+    public var isOpenableDocument: Bool {
+        kind == .document
     }
 }

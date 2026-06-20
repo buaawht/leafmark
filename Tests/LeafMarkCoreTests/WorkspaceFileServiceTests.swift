@@ -15,7 +15,8 @@ final class WorkspaceFileServiceTests: XCTestCase {
 
         XCTAssertEqual(tree.name, root.lastPathComponent)
         XCTAssertEqual(tree.kind, .folder)
-        XCTAssertEqual(tree.children.map(\.name), ["Child", "notes.txt", "root.md"])
+        XCTAssertEqual(tree.children.map(\.name), ["Child", "ignored.pdf", "notes.txt", "root.md"])
+        XCTAssertEqual(tree.children.map(\.kind), [.folder, .unsupportedFile, .document, .document])
         XCTAssertEqual(tree.children.first?.children.map(\.name), ["child.markdown"])
     }
 
