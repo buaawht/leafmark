@@ -44,6 +44,77 @@ final class WorkspaceFileServiceTests: XCTestCase {
         XCTAssertEqual(tree.children.map(\\.name), ["visible.md"])
     }
 
+    func testCreateMarkdownFileAddsDefaultExtension() throws {
+        let root = try makeWorkspace()
+        let service = WorkspaceFileService()
+
+        let url = try service.createMarkdownFile(named: "notes", in: root)
+
+        XCTAssertEqual(url.lastPathComponent, "notes.md")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    func testCreateFolderCreatesDirectory() throws {
+        let root = try makeWorkspace()
+        let service = WorkspaceFileService()
+
+        let url = try service.createFolder(named: "Drafts", in: root)
+
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory))
+        XCTAssertTrue(isDirectory.boolValue)
+    }
+
+    func testCreateRejectsConflicts() throws {
+        let root = try makeWorkspace()
+        let service = WorkspaceFileService()
+        _ = try service.createMarkdownFile(named: "notes", in: root)
+
+        XCTAssertThrowsError(try service.createMarkdownFile(named: "notes.md", in: root)) { error in
+            XCTAssertEqual(error as? WorkspaceFileService.WorkspaceError, .itemAlreadyExists("notes.md"))
+        }
+    }
+
+    func testRenameFileAndFolder() throws {
+        let root = try makeWorkspace()
+        let service = WorkspaceFileService()
+        let file = try service.createMarkdownFile(named: "old", in: root)
+        let folder = try service.createFolder(named: "OldFolder", in: root)
+
+        let renamedFile = try service.renameItem(at: file, to: "new.md")
+        let renamedFolder = try service.renameItem(at: folder, to: "NewFolder")
+
+        XCTAssertEqual(renamedFile.lastPathComponent, "new.md")
+        XCTAssertEqual(renamedFolder.lastPathComponent, "NewFolder")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: renamedFile.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: renamedFolder.path))
+    }
+
+    func testRenameRejectsConflicts() throws {
+        let root = try makeWorkspace()
+        let service = WorkspaceFileService()
+        let first = try service.createMarkdownFile(named: "first", in: root)
+        _ = try service.createMarkdownFile(named: "second", in: root)
+
+        XCTAssertThrowsError(try service.renameItem(at: first, to: "second.md")) { error in
+            XCTAssertEqual(error as? WorkspaceFileService.WorkspaceError, .itemAlreadyExists("second.md"))
+        }
+    }
+
+    func testTrashUsesInjectedHandler() throws {
+        let root = try makeWorkspace()
+        var trashedURL: URL?
+        let service = WorkspaceFileService(trashHandler: { url in
+            trashedURL = url
+        })
+        let file = try service.createMarkdownFile(named: "trash-me", in: root)
+
+        try service.trashItem(at: file)
+
+        XCTAssertEqual(trashedURL, file)
+    }
+
     private func makeWorkspace() throws -> URL {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
