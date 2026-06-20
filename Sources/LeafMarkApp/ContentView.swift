@@ -15,10 +15,12 @@ struct ContentView: View {
     @State private var editorScrollPercentage = 0.0
     @State private var requestedEditorLine: Int?
     @State private var previewScrollTargetID: String?
+    @State private var pdfExportURL: URL?
     @AppStorage("appearancePreference") private var appearancePreferenceRawValue = AppearancePreference.system.rawValue
 
     private let renderer = MarkdownRenderService()
     private let outlineService = DocumentOutlineService()
+    private let exportService = ExportService()
     private let workspaceFileService = WorkspaceFileService()
     private let fileDialogService: any FileDialogService = AppKitFileDialogService()
 
@@ -111,7 +113,8 @@ struct ContentView: View {
                     baseURL: session.selectedTab?.baseFileURLForPreview,
                     copyRequested: $copyRequested,
                     scrollPercentage: $editorScrollPercentage,
-                    scrollTargetID: $previewScrollTargetID
+                    scrollTargetID: $previewScrollTargetID,
+                    pdfExportURL: $pdfExportURL
                 )
             case .outline:
                 DocumentOutlineView(outline: currentOutline) { node in
@@ -150,6 +153,18 @@ struct ContentView: View {
                 }
             } label: {
                 Label("Save", systemImage: "square.and.arrow.down")
+            }
+            .labelStyle(.titleAndIcon)
+
+            Menu {
+                Button("Markdown") {
+                    exportMarkdown()
+                }
+                Button("PDF") {
+                    exportPDF()
+                }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
             }
             .labelStyle(.titleAndIcon)
         }
@@ -405,6 +420,33 @@ struct ContentView: View {
             showError(error.localizedDescription)
             return false
         }
+    }
+
+    private func exportMarkdown() {
+        guard let selectedTab = session.selectedTab else { return }
+        let defaultName = exportService.markdownExportName(for: selectedTab.displayName)
+        guard let url = fileDialogService.chooseExportMarkdownFile(defaultName: defaultName) else {
+            return
+        }
+
+        do {
+            try exportService.exportMarkdown(selectedTab.markdownText, to: url)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func exportPDF() {
+        guard let selectedTab = session.selectedTab else { return }
+        let defaultName = exportService.pdfExportName(for: selectedTab.displayName)
+        guard let url = fileDialogService.chooseExportPDFFile(defaultName: defaultName) else {
+            return
+        }
+
+        isPreviewVisible = true
+        rightPanelMode = .preview
+        renderPreview()
+        pdfExportURL = url
     }
 
     private func closeTab(_ id: DocumentTab.ID) {

@@ -8,6 +8,7 @@ struct MarkdownPreviewView: NSViewRepresentable {
     @Binding var copyRequested: Bool
     @Binding var scrollPercentage: Double
     @Binding var scrollTargetID: String?
+    @Binding var pdfExportURL: URL?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -57,6 +58,14 @@ struct MarkdownPreviewView: NSViewRepresentable {
                 copyRequested.wrappedValue = false
             }
         }
+
+        if pdfExportURL != nil {
+            let pdfExportURLBinding = $pdfExportURL
+            context.coordinator.exportPDF(to: pdfExportURLBinding.wrappedValue)
+            DispatchQueue.main.async {
+                pdfExportURLBinding.wrappedValue = nil
+            }
+        }
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -67,6 +76,7 @@ struct MarkdownPreviewView: NSViewRepresentable {
         var pendingCopy = false
         var pendingScrollPercentage: Double?
         var pendingScrollTargetID: String?
+        var pendingPDFExportURL: URL?
         var loadingNavigation: WKNavigation?
         private var lastAppliedScrollPercentage: Double?
 
@@ -108,6 +118,11 @@ struct MarkdownPreviewView: NSViewRepresentable {
             if let pendingScrollTargetID {
                 self.pendingScrollTargetID = nil
                 scrollToElement(id: pendingScrollTargetID)
+            }
+
+            if let pendingPDFExportURL {
+                self.pendingPDFExportURL = nil
+                exportPDF(to: pendingPDFExportURL)
             }
         }
 
@@ -177,6 +192,52 @@ struct MarkdownPreviewView: NSViewRepresentable {
             }
 
             return String(arrayLiteral.dropFirst().dropLast())
+        }
+
+        func exportPDF(to url: URL?) {
+            guard let url else { return }
+
+            if isLoading {
+                pendingPDFExportURL = url
+                return
+            }
+
+            guard let webView else { return }
+
+            webView.evaluateJavaScript("[document.documentElement.scrollWidth, document.documentElement.scrollHeight]") { dimensions, _ in
+                let size = Self.pdfSize(from: dimensions, fallback: webView.bounds.size)
+                let configuration = WKPDFConfiguration()
+                configuration.rect = CGRect(origin: .zero, size: size)
+
+                webView.createPDF(configuration: configuration) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let data):
+                            do {
+                                try data.write(to: url, options: .atomic)
+                            } catch {
+                                AppDialogCoordinator.showError(error.localizedDescription)
+                            }
+                        case .failure(let error):
+                            AppDialogCoordinator.showError(error.localizedDescription)
+                        }
+                    }
+                }
+            }
+        }
+
+        private static func pdfSize(from dimensions: Any?, fallback: CGSize) -> CGSize {
+            guard let values = dimensions as? [Any], values.count == 2 else {
+                return fallback
+            }
+
+            let width = values[0] as? Double ?? fallback.width
+            let height = values[1] as? Double ?? fallback.height
+
+            return CGSize(
+                width: max(fallback.width, width),
+                height: max(fallback.height, height)
+            )
         }
     }
 }

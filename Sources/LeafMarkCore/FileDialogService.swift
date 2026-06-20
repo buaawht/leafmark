@@ -6,6 +6,8 @@ public protocol FileDialogService {
     func chooseOpenFile() -> URL?
     func chooseOpenFolder() -> URL?
     func chooseSaveFile(defaultName: String) -> URL?
+    func chooseExportMarkdownFile(defaultName: String) -> URL?
+    func chooseExportPDFFile(defaultName: String) -> URL?
 }
 
 public struct AppKitFileDialogService: FileDialogService {
@@ -39,16 +41,45 @@ public struct AppKitFileDialogService: FileDialogService {
         return panel.runModal() == .OK ? panel.url : nil
     }
 
+    public func chooseExportMarkdownFile(defaultName: String) -> URL? {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = Self.allowedMarkdownExportTypes
+        panel.nameFieldStringValue = Self.defaultMarkdownName(from: defaultName)
+
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    public func chooseExportPDFFile(defaultName: String) -> URL? {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = Self.defaultPDFName(from: defaultName)
+
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
     private static let allowedDocumentTypes: [UTType] = [
         UTType(filenameExtension: "md")!,
         UTType(filenameExtension: "markdown")!,
         .plainText
     ]
 
+    private static let allowedMarkdownExportTypes: [UTType] = [
+        UTType(filenameExtension: "md")!,
+        UTType(filenameExtension: "markdown")!
+    ]
+
     private static func defaultMarkdownName(from name: String) -> String {
         let url = URL(fileURLWithPath: name)
         guard url.pathExtension.lowercased() == "md" else {
             return url.deletingPathExtension().lastPathComponent + ".md"
+        }
+        return name
+    }
+
+    private static func defaultPDFName(from name: String) -> String {
+        let url = URL(fileURLWithPath: name)
+        guard url.pathExtension.lowercased() == "pdf" else {
+            return url.deletingPathExtension().lastPathComponent + ".pdf"
         }
         return name
     }
