@@ -5,7 +5,7 @@ struct LeafMarkApp: App {
     @State private var openedURLs: [URL] = []
 
     var body: some Scene {
-        WindowGroup {
+        Window("LeafMark", id: "main") {
             ContentView(pendingOpenedURLs: $openedURLs)
                 .frame(minWidth: 900, minHeight: 600)
                 .onOpenURL { url in
