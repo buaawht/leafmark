@@ -119,26 +119,29 @@ struct ContentView: View {
             Button(action: newDocument) {
                 Label("New", systemImage: "doc")
             }
+            .labelStyle(.titleAndIcon)
 
             Button(action: openDocument) {
                 Label("Open", systemImage: "folder")
             }
+            .labelStyle(.titleAndIcon)
 
             Button(action: openFolder) {
                 Label("Open Folder", systemImage: "folder.badge.plus")
             }
+            .labelStyle(.titleAndIcon)
 
-            Button {
-                _ = saveDocument()
+            Menu {
+                Button("Save") {
+                    _ = saveDocument()
+                }
+                Button("Save As") {
+                    _ = saveDocumentAs()
+                }
             } label: {
                 Label("Save", systemImage: "square.and.arrow.down")
             }
-
-            Button {
-                _ = saveDocumentAs()
-            } label: {
-                Label("Save As", systemImage: "square.and.arrow.down.on.square")
-            }
+            .labelStyle(.titleAndIcon)
         }
 
         ToolbarItemGroup {
@@ -147,6 +150,7 @@ struct ContentView: View {
             } label: {
                 Label("Toggle Sidebar", systemImage: "sidebar.left")
             }
+            .labelStyle(.titleAndIcon)
 
             Menu {
                 Picker("Appearance", selection: $appearancePreferenceRawValue) {
@@ -157,18 +161,21 @@ struct ContentView: View {
             } label: {
                 Label("Appearance", systemImage: "circle.lefthalf.filled")
             }
+            .labelStyle(.titleAndIcon)
 
             Button {
                 isPreviewVisible.toggle()
             } label: {
                 Label("Toggle Preview", systemImage: "sidebar.right")
             }
+            .labelStyle(.titleAndIcon)
 
             Button {
                 copyRequested = true
             } label: {
                 Label("Copy Rendered", systemImage: "doc.on.doc")
             }
+            .labelStyle(.titleAndIcon)
             .disabled(!isPreviewVisible || session.selectedTab?.renderedHTML.isEmpty != false)
         }
     }
