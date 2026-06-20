@@ -6,6 +6,11 @@ struct EditorTextView: NSViewRepresentable {
     @Binding var scrollPercentage: Double
     @Binding var requestedLine: Int?
     let documentID: AnyHashable?
+    let newDocument: () -> Void
+    let openDocument: () -> Void
+    let saveDocument: () -> Void
+    let saveDocumentAs: () -> Void
+    let closeDocument: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(text: $text, scrollPercentage: $scrollPercentage, requestedLine: $requestedLine)
@@ -18,7 +23,7 @@ struct EditorTextView: NSViewRepresentable {
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
 
-        let textView = NSTextView()
+        let textView = KeyboardHandlingTextView()
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
@@ -33,6 +38,7 @@ struct EditorTextView: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = false
         textView.delegate = context.coordinator
+        textView.shortcutHandler = context.coordinator.handleShortcut(_:)
         textView.string = text
 
         scrollView.documentView = textView
@@ -51,6 +57,11 @@ struct EditorTextView: NSViewRepresentable {
         context.coordinator.text = $text
         context.coordinator.scrollPercentage = $scrollPercentage
         context.coordinator.requestedLine = $requestedLine
+        context.coordinator.newDocument = newDocument
+        context.coordinator.openDocument = openDocument
+        context.coordinator.saveDocument = saveDocument
+        context.coordinator.saveDocumentAs = saveDocumentAs
+        context.coordinator.closeDocument = closeDocument
         let didSwitchDocument = context.coordinator.lastDocumentID != documentID
         context.coordinator.lastDocumentID = documentID
 
@@ -92,6 +103,11 @@ struct EditorTextView: NSViewRepresentable {
         var lastKnownText = ""
         var lastDocumentID: AnyHashable?
         private var boundsObserver: NSObjectProtocol?
+        var newDocument: () -> Void = {}
+        var openDocument: () -> Void = {}
+        var saveDocument: () -> Void = {}
+        var saveDocumentAs: () -> Void = {}
+        var closeDocument: () -> Void = {}
 
         init(
             text: Binding<String>,
@@ -138,6 +154,22 @@ struct EditorTextView: NSViewRepresentable {
             ) { [weak self] _ in
                 self?.updateScrollPercentage()
             }
+        }
+
+        fileprivate func handleShortcut(_ shortcut: KeyboardShortcutAction) -> Bool {
+            switch shortcut {
+            case .newDocument:
+                newDocument()
+            case .openDocument:
+                openDocument()
+            case .saveDocument:
+                saveDocument()
+            case .saveDocumentAs:
+                saveDocumentAs()
+            case .closeDocument:
+                closeDocument()
+            }
+            return true
         }
 
         func stopObservingBoundsChanges() {
@@ -188,5 +220,48 @@ struct EditorTextView: NSViewRepresentable {
 
             return offset
         }
+    }
+}
+
+fileprivate enum KeyboardShortcutAction {
+    case newDocument
+    case openDocument
+    case saveDocument
+    case saveDocumentAs
+    case closeDocument
+}
+
+private final class KeyboardHandlingTextView: NSTextView {
+    var shortcutHandler: ((KeyboardShortcutAction) -> Bool)?
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.command),
+              let characters = event.charactersIgnoringModifiers?.lowercased()
+        else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        let isShiftPressed = event.modifierFlags.contains(.shift)
+        let action: KeyboardShortcutAction?
+        switch (characters, isShiftPressed) {
+        case ("n", false):
+            action = .newDocument
+        case ("o", false):
+            action = .openDocument
+        case ("s", false):
+            action = .saveDocument
+        case ("s", true):
+            action = .saveDocumentAs
+        case ("w", false):
+            action = .closeDocument
+        default:
+            action = nil
+        }
+
+        if let action, shortcutHandler?(action) == true {
+            return true
+        }
+
+        return super.performKeyEquivalent(with: event)
     }
 }

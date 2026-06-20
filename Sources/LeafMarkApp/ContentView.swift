@@ -84,7 +84,16 @@ struct ContentView: View {
                 text: selectedMarkdownBinding,
                 scrollPercentage: $editorScrollPercentage,
                 requestedLine: $requestedEditorLine,
-                documentID: session.selectedTabID
+                documentID: session.selectedTabID,
+                newDocument: newDocument,
+                openDocument: openDocument,
+                saveDocument: {
+                    _ = saveDocument()
+                },
+                saveDocumentAs: {
+                    _ = saveDocumentAs()
+                },
+                closeDocument: closeSelectedTab
             )
                 .padding(8)
                 .frame(minWidth: 320)
