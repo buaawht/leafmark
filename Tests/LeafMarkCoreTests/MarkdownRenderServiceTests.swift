@@ -190,4 +190,20 @@ final class MarkdownRenderServiceTests: XCTestCase {
         XCTAssertTrue(html.contains("alt=\"Pasted image 20260620220800.png\""))
         XCTAssertTrue(html.contains("file:///tmp/LeafMark/Pasted%20image%2020260620220800.png"))
     }
+
+    func testRenderEmbedsExistingLocalImageData() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+            .write(to: directory.appendingPathComponent("sample.svg"), atomically: true, encoding: .utf8)
+
+        let html = try MarkdownRenderService().render(
+            "![Sample](sample.svg)",
+            baseFileURL: directory.appendingPathComponent("notes.md")
+        )
+
+        XCTAssertTrue(html.contains("src=\"data:image/svg+xml;base64,"))
+    }
 }

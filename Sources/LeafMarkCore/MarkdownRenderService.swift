@@ -341,7 +341,10 @@ private struct HTMLRenderer: MarkupWalker {
             return normalizedSource
         }
 
-        return baseDirectoryURL.appendingPathComponent(normalizedSource).standardizedFileURL.absoluteString
+        let localFileURL = baseDirectoryURL
+            .appendingPathComponent(normalizedSource)
+            .standardizedFileURL
+        return embeddedImageDataURL(for: localFileURL) ?? localFileURL.absoluteString
     }
 
     private func normalizedURLString(_ urlString: String) -> String? {
@@ -369,6 +372,33 @@ private struct HTMLRenderer: MarkupWalker {
             return false
         }
         return URLComponents(string: source)?.scheme == nil
+    }
+
+    private func embeddedImageDataURL(for url: URL) -> String? {
+        guard let mimeType = imageMIMEType(for: url),
+              FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+
+        return "data:\(mimeType);base64,\(data.base64EncodedString())"
+    }
+
+    private func imageMIMEType(for url: URL) -> String? {
+        switch url.pathExtension.lowercased() {
+        case "png":
+            return "image/png"
+        case "jpg", "jpeg":
+            return "image/jpeg"
+        case "gif":
+            return "image/gif"
+        case "webp":
+            return "image/webp"
+        case "svg":
+            return "image/svg+xml"
+        default:
+            return nil
+        }
     }
 
     private func escapeHTML(_ string: String) -> String {

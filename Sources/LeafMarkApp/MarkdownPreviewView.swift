@@ -15,10 +15,16 @@ struct MarkdownPreviewView: NSViewRepresentable {
     }
 
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        let webView = WKWebView(frame: .zero, configuration: Self.webViewConfiguration())
         webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
         return webView
+    }
+
+    static func webViewConfiguration() -> WKWebViewConfiguration {
+        let configuration = WKWebViewConfiguration()
+        configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        return configuration
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
@@ -237,12 +243,15 @@ private final class PDFExporter: NSObject, WKNavigationDelegate {
         self.baseURL = baseURL
         self.destinationURL = destinationURL
         self.completion = completion
-        self.webView = WKWebView(frame: CGRect(
-            x: 0,
-            y: 0,
-            width: Self.a4Width,
-            height: Self.a4Height
-        ))
+        self.webView = WKWebView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: Self.a4Width,
+                height: Self.a4Height
+            ),
+            configuration: MarkdownPreviewView.webViewConfiguration()
+        )
         super.init()
         webView.navigationDelegate = self
     }
