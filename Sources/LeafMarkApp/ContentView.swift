@@ -12,6 +12,9 @@ struct ContentView: View {
     @State private var copyRequested = false
     @State private var directoryTree: DirectoryTreeNode?
     @State private var renderTask: Task<Void, Never>?
+    @State private var editorScrollPercentage = 0.0
+    @State private var requestedEditorLine: Int?
+    @State private var previewScrollTargetID: String?
     @AppStorage("appearancePreference") private var appearancePreferenceRawValue = AppearancePreference.system.rawValue
 
     private let renderer = MarkdownRenderService()
@@ -74,8 +77,11 @@ struct ContentView: View {
                 deleteItem: deleteItem(_:)
             )
 
-            TextEditor(text: selectedMarkdownBinding)
-                .font(.system(.body, design: .monospaced))
+            EditorTextView(
+                text: selectedMarkdownBinding,
+                scrollPercentage: $editorScrollPercentage,
+                requestedLine: $requestedEditorLine
+            )
                 .padding(8)
                 .frame(minWidth: 320)
 
@@ -103,10 +109,14 @@ struct ContentView: View {
                 MarkdownPreviewView(
                     html: session.selectedTab?.renderedHTML ?? "",
                     baseURL: session.selectedTab?.baseFileURLForPreview,
-                    copyRequested: $copyRequested
+                    copyRequested: $copyRequested,
+                    scrollPercentage: $editorScrollPercentage,
+                    scrollTargetID: $previewScrollTargetID
                 )
             case .outline:
-                DocumentOutlineView(outline: currentOutline) { _ in
+                DocumentOutlineView(outline: currentOutline) { node in
+                    requestedEditorLine = node.line
+                    previewScrollTargetID = node.slug
                     rightPanelMode = .preview
                 }
             }

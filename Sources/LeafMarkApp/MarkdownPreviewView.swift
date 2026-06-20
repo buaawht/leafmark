@@ -6,6 +6,8 @@ struct MarkdownPreviewView: NSViewRepresentable {
     let html: String
     let baseURL: URL?
     @Binding var copyRequested: Bool
+    @Binding var scrollPercentage: Double
+    @Binding var scrollTargetID: String?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -34,6 +36,16 @@ struct MarkdownPreviewView: NSViewRepresentable {
             }
         }
 
+        context.coordinator.applyScrollPercentage(scrollPercentage)
+
+        if scrollTargetID != nil {
+            let scrollTargetIDBinding = $scrollTargetID
+            context.coordinator.scrollToElement(id: scrollTargetIDBinding.wrappedValue)
+            DispatchQueue.main.async {
+                scrollTargetIDBinding.wrappedValue = nil
+            }
+        }
+
         if copyRequested {
             let copyRequested = $copyRequested
             if context.coordinator.isLoading {
@@ -53,7 +65,10 @@ struct MarkdownPreviewView: NSViewRepresentable {
         var lastResourceBaseURL: URL?
         var isLoading = false
         var pendingCopy = false
+        var pendingScrollPercentage: Double?
+        var pendingScrollTargetID: String?
         var loadingNavigation: WKNavigation?
+        private var lastAppliedScrollPercentage: Double?
 
         func webView(
             _ webView: WKWebView,
@@ -84,6 +99,16 @@ struct MarkdownPreviewView: NSViewRepresentable {
                 pendingCopy = false
                 copyRenderedContent()
             }
+
+            if let pendingScrollPercentage {
+                self.pendingScrollPercentage = nil
+                applyScrollPercentage(pendingScrollPercentage)
+            }
+
+            if let pendingScrollTargetID {
+                self.pendingScrollTargetID = nil
+                scrollToElement(id: pendingScrollTargetID)
+            }
         }
 
         func copyRenderedContent() {
@@ -101,6 +126,57 @@ struct MarkdownPreviewView: NSViewRepresentable {
                     }
                 }
             }
+        }
+
+        func applyScrollPercentage(_ percentage: Double) {
+            let clampedPercentage = min(1, max(0, percentage))
+
+            guard abs((lastAppliedScrollPercentage ?? -1) - clampedPercentage) > 0.01 else {
+                return
+            }
+
+            if isLoading {
+                pendingScrollPercentage = clampedPercentage
+                return
+            }
+
+            lastAppliedScrollPercentage = clampedPercentage
+            let script = """
+            (() => {
+              const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+              window.scrollTo(0, \(clampedPercentage) * maxY);
+            })();
+            """
+            webView?.evaluateJavaScript(script)
+        }
+
+        func scrollToElement(id: String?) {
+            guard let id, !id.isEmpty else { return }
+
+            if isLoading {
+                pendingScrollTargetID = id
+                return
+            }
+
+            let script = """
+            (() => {
+              const element = document.getElementById(\(Self.javaScriptStringLiteral(id)));
+              if (element) {
+                element.scrollIntoView({ block: 'start' });
+              }
+            })();
+            """
+            webView?.evaluateJavaScript(script)
+        }
+
+        private static func javaScriptStringLiteral(_ value: String) -> String {
+            guard let data = try? JSONSerialization.data(withJSONObject: [value]),
+                  let arrayLiteral = String(data: data, encoding: .utf8)
+            else {
+                return #""""#
+            }
+
+            return String(arrayLiteral.dropFirst().dropLast())
         }
     }
 }
