@@ -4,20 +4,14 @@ import SwiftUI
 @main
 struct LeafMarkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var openedURLs: [URL] = []
+    @StateObject private var openURLRouter = OpenURLRouter.shared
 
     var body: some Scene {
         WindowGroup {
-            ContentView(pendingOpenedURLs: $openedURLs)
+            ContentView(openURLRouter: openURLRouter)
                 .frame(minWidth: 900, minHeight: 600)
-                .onAppear {
-                    openedURLs.append(contentsOf: appDelegate.consumePendingOpenURLs())
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .leafMarkOpenURLs)) { notification in
-                    guard let urls = notification.userInfo?[AppDelegate.openURLsUserInfoKey] as? [URL] else {
-                        return
-                    }
-                    openedURLs.append(contentsOf: urls)
+                .onOpenURL { url in
+                    openURLRouter.append([url])
                 }
         }
         .windowResizability(.contentSize)
@@ -28,17 +22,24 @@ struct LeafMarkApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    static let openURLsUserInfoKey = "urls"
-    private var pendingOpenURLs: [URL] = []
+    func application(_ application: NSApplication, open urls: [URL]) {
+        Task { @MainActor in
+            OpenURLRouter.shared.append(urls)
+        }
+    }
+
+    func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        Task { @MainActor in
+            OpenURLRouter.shared.append([URL(fileURLWithPath: filename)])
+        }
+        return true
+    }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
         let urls = filenames.map { URL(fileURLWithPath: $0) }
-        pendingOpenURLs.append(contentsOf: urls)
-        NotificationCenter.default.post(
-            name: .leafMarkOpenURLs,
-            object: nil,
-            userInfo: [Self.openURLsUserInfoKey: urls]
-        )
+        Task { @MainActor in
+            OpenURLRouter.shared.append(urls)
+        }
         sender.reply(toOpenOrPrint: .success)
     }
 
@@ -46,13 +47,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
-    func consumePendingOpenURLs() -> [URL] {
-        let urls = pendingOpenURLs
-        pendingOpenURLs.removeAll()
-        return urls
-    }
 }
 
-extension Notification.Name {
-    static let leafMarkOpenURLs = Notification.Name("leafMarkOpenURLs")
+@MainActor
+final class OpenURLRouter: ObservableObject {
+    static let shared = OpenURLRouter()
+
+    @Published private(set) var pendingChangeID = 0
+    private var pendingURLs: [URL] = []
+
+    private init() {}
+
+    func append(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        pendingURLs.append(contentsOf: urls)
+        pendingChangeID += 1
+    }
+
+    func consumePendingURLs() -> [URL] {
+        let urls = pendingURLs
+        pendingURLs.removeAll()
+        return urls
+    }
 }

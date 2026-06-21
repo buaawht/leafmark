@@ -3,9 +3,10 @@ import LeafMarkCore
 import SwiftUI
 
 struct ContentView: View {
-    @Binding var pendingOpenedURLs: [URL]
+    @ObservedObject var openURLRouter: OpenURLRouter
 
     @State private var session = DocumentSessionViewModel()
+    @State private var windowID = UUID()
     @State private var isSidebarVisible = true
     @State private var isPreviewVisible = true
     @State private var isOutlineVisible = false
@@ -36,8 +37,13 @@ struct ContentView: View {
             .onChange(of: session.selectedTabID) {
                 renderPreview()
             }
-            .onChange(of: pendingOpenedURLs) {
+            .onReceive(openURLRouter.$pendingChangeID) { _ in
                 openPendingDocumentFromFinder()
+            }
+            .onAppear {
+                DispatchQueue.main.async {
+                    openPendingDocumentFromFinder()
+                }
             }
             .onChange(of: appearancePreferenceRawValue) {
                 renderPreview()
@@ -48,7 +54,7 @@ struct ContentView: View {
             .background(WindowCloseGuard(shouldClose: {
                 handleAllUnsavedChangesIfNeeded()
             }))
-            .background(SingleWindowEnforcer())
+            .background(SingleWindowEnforcer(windowID: windowID))
             .preferredColorScheme(preferredColorScheme)
     }
 
@@ -431,10 +437,12 @@ struct ContentView: View {
     }
 
     private func openPendingDocumentFromFinder() {
-        guard let url = pendingOpenedURLs.first else { return }
+        guard WindowRegistry.isPrimary(windowID) else { return }
 
-        pendingOpenedURLs.removeAll()
-        openItem(at: url)
+        let urls = openURLRouter.consumePendingURLs()
+        for url in urls {
+            openItem(at: url)
+        }
     }
 
     private func openDocument(at url: URL) {
@@ -634,25 +642,28 @@ private struct WindowCloseGuard: NSViewRepresentable {
 }
 
 private struct SingleWindowEnforcer: NSViewRepresentable {
+    let windowID: UUID
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            WindowRegistry.register(view.window)
+            WindowRegistry.register(view.window, id: windowID)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            WindowRegistry.register(nsView.window)
+            WindowRegistry.register(nsView.window, id: windowID)
         }
     }
 }
 
 private enum WindowRegistry {
     private static weak var primaryWindow: NSWindow?
+    private static var primaryWindowID: UUID?
 
-    static func register(_ window: NSWindow?) {
+    static func register(_ window: NSWindow?, id: UUID) {
         guard let window else { return }
 
         if let primaryWindow, primaryWindow !== window, primaryWindow.isVisible {
@@ -662,5 +673,10 @@ private enum WindowRegistry {
         }
 
         primaryWindow = window
+        primaryWindowID = id
+    }
+
+    static func isPrimary(_ id: UUID) -> Bool {
+        primaryWindowID == id
     }
 }
