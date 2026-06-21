@@ -7,12 +7,9 @@ struct LeafMarkApp: App {
     @State private var openedURLs: [URL] = []
 
     var body: some Scene {
-        Window("LeafMark", id: "main") {
+        WindowGroup {
             ContentView(pendingOpenedURLs: $openedURLs)
                 .frame(minWidth: 900, minHeight: 600)
-                .onOpenURL { url in
-                    openedURLs.append(url)
-                }
                 .onAppear {
                     openedURLs.append(contentsOf: appDelegate.consumePendingOpenURLs())
                 }
@@ -43,10 +40,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             userInfo: [Self.openURLsUserInfoKey: urls]
         )
         sender.reply(toOpenOrPrint: .success)
-    }
-
-    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        false
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
