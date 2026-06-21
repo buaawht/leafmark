@@ -48,6 +48,7 @@ struct ContentView: View {
             .background(WindowCloseGuard(shouldClose: {
                 handleAllUnsavedChangesIfNeeded()
             }))
+            .background(SingleWindowEnforcer())
             .preferredColorScheme(preferredColorScheme)
     }
 
@@ -629,5 +630,37 @@ private struct WindowCloseGuard: NSViewRepresentable {
         func windowShouldClose(_ sender: NSWindow) -> Bool {
             shouldClose()
         }
+    }
+}
+
+private struct SingleWindowEnforcer: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            WindowRegistry.register(view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            WindowRegistry.register(nsView.window)
+        }
+    }
+}
+
+private enum WindowRegistry {
+    private static weak var primaryWindow: NSWindow?
+
+    static func register(_ window: NSWindow?) {
+        guard let window else { return }
+
+        if let primaryWindow, primaryWindow !== window, primaryWindow.isVisible {
+            primaryWindow.makeKeyAndOrderFront(nil)
+            window.close()
+            return
+        }
+
+        primaryWindow = window
     }
 }
