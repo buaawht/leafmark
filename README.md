@@ -69,6 +69,26 @@ QA documents:
 
 - `docs/qa/leafmark-v0.1.1-manual-qa-checklist.md`
 
+## Version workflow
+
+Each version should follow the same release path:
+
+1. Start from a clean, up-to-date `master`.
+2. Create a version branch from `master`, usually named `codex/leafmark-vX.Y.Z`.
+3. Implement only the planned version scope on that branch.
+4. Run developer self-tests before handing the build to manual QA.
+5. Record manual QA findings in the version QA document.
+6. Fix confirmed issues on the same version branch and re-run relevant checks.
+7. When manual QA is accepted, update version metadata and README release notes.
+8. Merge the version branch back into local `master`.
+9. Push both the version branch and `master` to origin.
+10. Create and push the version tag, for example `v0.1.1`.
+11. Confirm GitHub's default branch points at `master`.
+
+Do not publish a version from a feature branch only. A release is complete only
+after local `master`, remote `origin/master`, and the version tag all point to
+the accepted release commit.
+
 ## V0.1.1 scope
 
 Included:

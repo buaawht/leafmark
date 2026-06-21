@@ -6,7 +6,7 @@ Guidance for Codex and other agentic contributors working in this repository.
 
 LeafMark is a lightweight local macOS Markdown editor and previewer.
 
-The V0.1.0 app is intentionally small:
+The app is intentionally small:
 
 - SwiftUI app
 - independent Markdown rendering service
@@ -69,6 +69,26 @@ swift test
 
 If XCTest is unavailable, report that as an environment limitation rather than a passing test result.
 
+## Version workflow
+
+For every version, follow this release flow unless the user explicitly changes it:
+
+1. Start from a clean, up-to-date local `master`.
+2. Create a version branch from `master`, usually `codex/leafmark-vX.Y.Z`.
+3. Implement the planned scope on the version branch only.
+4. Run developer self-tests before asking the user to do manual QA.
+5. Keep manual QA findings in the version QA document.
+6. Fix confirmed QA issues on the same version branch and re-run relevant checks.
+7. After the user accepts the version, update version metadata and README release notes.
+8. Merge the accepted version branch back into local `master`.
+9. Push both the version branch and `master` to origin.
+10. Create and push the version tag, for example `v0.1.1`.
+11. Confirm GitHub's default branch points at `master`.
+
+Do not consider a version released while it exists only on a feature branch.
+Local `master`, remote `origin/master`, and the version tag must all point to
+the accepted release commit.
+
 ## Markdown rendering boundary
 
 Keep Markdown dependency details behind `MarkdownRenderService`.
@@ -84,7 +104,7 @@ Keep Markdown dependency details behind `MarkdownRenderService`.
 - `DocumentFileService` owns UTF-8 file read/write and extension validation.
 - AppKit panels and alerts should stay in the app layer.
 
-## Product non-goals for V0.1.0
+## Product non-goals
 
 Do not add unless explicitly requested:
 
@@ -97,7 +117,6 @@ Do not add unless explicitly requested:
 - knowledge-base graph features
 - syntax highlighting
 - scroll sync
-- multi-tab editing
 - complex themes
 
 Some of these may appear in the post-QA backlog, but they should be planned before implementation.
