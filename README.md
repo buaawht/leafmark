@@ -2,13 +2,16 @@
 
 LeafMark is a lightweight local-first macOS Markdown editor and previewer.
 
-V0.1.0 focuses on a small document loop:
+V0.1.1 focuses on a small local document loop:
 
 - open Markdown or text files
 - edit Markdown locally
 - preview rendered Markdown in a split view
 - save and save as
+- manage multiple documents with tabs
+- browse and manage a local folder from the file sidebar
 - open `.md`, `.markdown`, and `.txt` files through Finder / Open With
+- export rendered Markdown to PDF or HTML
 - copy rendered content as rich HTML with a plain-text fallback
 
 LeafMark is currently intended for personal local use, not App Store distribution.
@@ -64,19 +67,22 @@ In that case, either install/select full Xcode or rely on build checks plus manu
 
 QA documents:
 
-- `docs/qa/leafmark-v1-qa-checklist.md`
-- `docs/qa/leafmark-v1-self-test-2026-06-20.md`
+- `docs/qa/leafmark-v0.1.1-manual-qa-checklist.md`
 
-## V0.1.0 scope
+## V0.1.1 scope
 
 Included:
 
 - SwiftUI single-window app
-- split editor and preview
+- split editor and preview, with optional sidebar and outline
 - WKWebView Markdown preview
 - Markdown rendering behind `MarkdownRenderService`
 - common Markdown features including tables, links, images, quotes, lists, and code blocks
 - New / Open / Save / Save As / Toggle Preview / Copy Rendered
+- document tabs for multiple Markdown/text files
+- folder tree browsing with create, rename, delete, and reveal actions
+- appearance mode control: light, dark, or system
+- PDF and HTML export
 - unsaved-change confirmation for destructive document actions
 - local app bundle script and document type metadata
 
@@ -84,11 +90,10 @@ Not included yet:
 
 - App Store release, signing, notarization, or installer
 - cloud sync, accounts, collaboration, or plugin system
-- multi-tab editing
 - syntax highlighting
 - scroll sync
-- complex themes
+- plugin or Git integration
 
 ## Follow-up backlog
 
-See `docs/qa/leafmark-v1-qa-checklist.md` for post-QA notes and follow-up requests.
+See `docs/qa/leafmark-v0.1.1-manual-qa-checklist.md` for post-QA notes and follow-up requests.
